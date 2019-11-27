@@ -1,0 +1,17 @@
+github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
+github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/gomodule/redigo v2.0.0+incompatible/go.mod h1:B4C85qUVwatsJoIUNIfCRsp7qO0iAmpGFZ4EELWSbC4=
+github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
+github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
+github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
+github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
+github.com/yhyzgn/ghost v1.0.0 h1:SUi7DMpoUSGsI0pb9wrMVYbaw9+e92nKNBF0LKg3J/Q=
+github.com/yhyzgn/ghost v1.0.0/go.mod h1:n6fipit2L7Q/y/MuvN0FTF4RV3Luyx7eGQX0ops5bf8=
+github.com/yhyzgn/gog v1.0.0 h1:xBIONsZXsNZZ8X2EMyP7QrqvGzgvjGJb8uhlJ6J8kBQ=
+github.com/yhyzgn/gog v1.0.0/go.mod h1:qOmMZv8jIooFAQOKnAfR4tpvY0zbCFk1YPElQD0dhuI=
+github.com/yhyzgn/golus v1.0.3 h1:qI+ZGLcSTMHna4pXDRlUSwA2KEiKFqPxm65VAev6eV0=
+github.com/yhyzgn/golus v1.0.3/go.mod h1:45my4h9DHpjpNCOTtIPFDIxko6VS6YJIayEOIn4V6Rw=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+gopkg.in/yaml.v2 v2.2.4 h1:/eiJrUcujPVeJ3xlSWaiNi3uSVmDGBK1pDHUHAnao1I=
+gopkg.in/yaml.v2 v2.2.4/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
