@@ -1,2 +1,2 @@
 # gox
-A gox of golang http mvc for you !
+Web mvc framework in golang.
