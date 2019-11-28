@@ -26,14 +26,16 @@ type WebContext interface {
 	context.ResourceContext
 }
 
-type ComponentContext interface {
+type WareContext interface {
 	WebContext
 
-	SetComponent(name string, component interface{}) ComponentContext
+	SetWare(name string, component interface{}) WareContext
 
-	GetComponent(name string) interface{}
+	SetWareOnce(name string, component interface{}) WareContext
+
+	GetWare(name string) interface{}
 }
 
 type XContext interface {
-	ComponentContext
+	WareContext
 }

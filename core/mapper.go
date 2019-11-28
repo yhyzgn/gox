@@ -21,148 +21,77 @@
 package core
 
 import (
-	"fmt"
 	"github.com/yhyzgn/gox/common"
-	"github.com/yhyzgn/gox/util"
-	"github.com/yhyzgn/gox/wire"
-	"github.com/yhyzgn/gog"
 	"net/http"
-	"reflect"
-	"strings"
 )
 
 type Mapper struct {
 	route *Route
 }
 
-type mapping struct {
-	mapper      *Mapper
-	path        string
-	handlerFunc common.HandlerFunc
-	methods     []common.Method
-	params      []*common.Param
-}
-
 func NewMapper(route *Route) *Mapper {
 	return &Mapper{route: route}
 }
 
-func (mp *mapping) Mapping() *Mapper {
-	if mp.methods == nil {
-		mp.methods = make([]common.Method, 0)
+func (mp *Mapper) Request(path string) *Ship {
+	return &Ship{
+		mapper:  mp,
+		path:    path,
+		methods: make([]common.Method, 0),
+		params:  make([]*common.Param, 0),
 	}
-	if len(mp.methods) == 0 {
-		mp.methods = append(mp.methods, http.MethodGet)
-	}
-
-	v := reflect.ValueOf(mp.handlerFunc)
-	if v.Kind() != reflect.Func {
-		gog.FatalF("The handlerFunc %v must be function.", mp.handlerFunc)
-	}
-
-	// 检查参数有效性
-	// 每个方法最多 2 个参数可以是 http.ResponseWriter 和 *http.Request
-	// 其他均是自定义参数，需要注册
-	x := v.Type()
-	paramCount := x.NumIn()
-	if paramCount > len(mp.params)+2 {
-		// 有些参数未注册
-		gog.Fatal("Maybe some params have not been registered.")
-	}
-
-	pos := 0
-	for i := 0; i < paramCount; i++ {
-		tp := x.In(i)
-		if tp.Kind() == reflect.Ptr {
-			tp = tp.Elem()
-		}
-		pkg := tp.PkgPath()
-		kind := tp.Kind()
-		name := tp.Name()
-
-		if pkg == "net/http" {
-			// 可能是 http.ResponseWriter 或者 *http.Request
-			if kind == reflect.Interface && name == "ResponseWriter" {
-				// http.ResponseWriter
-				continue
-			}
-
-			if kind == reflect.Struct && name == "Request" {
-				// http.Request
-				continue
-			}
-			gog.FatalF("Unsupported argument [%v] of function [%v]", tp, v)
-		}
-
-		if pos >= len(mp.params) {
-			gog.Fatal("Maybe some params have not been registered.")
-		}
-
-		// 映射 Type
-		mp.params[pos].Type = tp
-		pos++
-	}
-
-	wire.Instance.Mapping(mp.resolvePath(), common.Handler(v), mp.methods, mp.params)
-	return mp.mapper
 }
 
-func (mp *mapping) resolvePath() string {
-	pref := mp.mapper.route.path
-	path := mp.path
-
-	if !strings.HasPrefix(pref, "/") {
-		pref = "/" + pref
-	}
-
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
-
-	return util.ReplaceAll(fmt.Sprintf("%s%s", pref, path), "//", "/")
+func (mp *Mapper) Get(path string) *Ship {
+	hm := mp.Request(path)
+	hm.methods = append(hm.methods, http.MethodGet)
+	return hm
 }
 
-func (mp *Mapper) Path(path string) *mapping {
-	mpg := new(mapping)
-	mpg.mapper = mp
-	mpg.path = path
-	mpg.methods = make([]common.Method, 0)
-	mpg.params = make([]*common.Param, 0)
-	return mpg
+func (mp *Mapper) Head(path string) *Ship {
+	hm := mp.Request(path)
+	hm.methods = append(hm.methods, http.MethodHead)
+	return hm
 }
 
-func (mp *mapping) HandlerFunc(handlerFunc common.HandlerFunc) *mapping {
-	mp.handlerFunc = handlerFunc
-	return mp
+func (mp *Mapper) Post(path string) *Ship {
+	hm := mp.Request(path)
+	hm.methods = append(hm.methods, http.MethodPost)
+	return hm
 }
 
-func (mp *mapping) Method(methods ...common.Method) *mapping {
-	if methods != nil {
-		mp.methods = append(mp.methods, methods...)
-	}
-	return mp
+func (mp *Mapper) Put(path string) *Ship {
+	hm := mp.Request(path)
+	hm.methods = append(hm.methods, http.MethodPut)
+	return hm
 }
 
-func (mp *mapping) Header(name string) *mapping {
-	mp.params = append(mp.params, common.NewParam(name, true, true, false, false))
-	return mp
-}
-func (mp *mapping) Param(name string) *mapping {
-	mp.params = append(mp.params, common.NewParam(name, true, false, false, false))
-	return mp
+func (mp *Mapper) Patch(path string) *Ship {
+	hm := mp.Request(path)
+	hm.methods = append(hm.methods, http.MethodPatch)
+	return hm
 }
 
-func (mp *mapping) ParamNil(name string) *mapping {
-	mp.params = append(mp.params, common.NewParam(name, false, false, false, false))
-	return mp
+func (mp *Mapper) Delete(path string) *Ship {
+	hm := mp.Request(path)
+	hm.methods = append(hm.methods, http.MethodDelete)
+	return hm
 }
 
-func (mp *mapping) PathVariable(name string) *mapping {
-	mp.params = append(mp.params, common.NewParam(name, true, false, true, false))
-	return mp
+func (mp *Mapper) Connect(path string) *Ship {
+	hm := mp.Request(path)
+	hm.methods = append(hm.methods, http.MethodConnect)
+	return hm
 }
 
-func (mp *mapping) Body(name string) *mapping {
-	mp.params = append(mp.params, common.NewParam(name, true, false, false, true))
-	return mp
+func (mp *Mapper) Options(path string) *Ship {
+	hm := mp.Request(path)
+	hm.methods = append(hm.methods, http.MethodOptions)
+	return hm
+}
+
+func (mp *Mapper) Trace(path string) *Ship {
+	hm := mp.Request(path)
+	hm.methods = append(hm.methods, http.MethodTrace)
+	return hm
 }

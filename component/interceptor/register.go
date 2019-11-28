@@ -20,18 +20,24 @@
 
 package interceptor
 
+import "github.com/yhyzgn/gog"
+
 type InterceptorRegister struct {
 	interceptors []Interceptor
 	pathMap      map[int]string
 }
 
 func NewInterceptorRegister() *InterceptorRegister {
-	return new(InterceptorRegister)
+	return &InterceptorRegister{
+		interceptors: make([]Interceptor, 0),
+		pathMap:      make(map[int]string),
+	}
 }
 
 func (ir *InterceptorRegister) AddInterceptor(path string, interceptor Interceptor) *InterceptorRegister {
 	ir.interceptors = append(ir.interceptors, interceptor)
 	ir.pathMap[len(ir.interceptors)-1] = path
+	gog.InfoF("The Interceptor [%v] registered.", path)
 	return ir
 }
 

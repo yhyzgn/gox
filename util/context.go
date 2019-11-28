@@ -24,11 +24,11 @@ import (
 	"github.com/yhyzgn/gox/context"
 )
 
-func GetComponent(name string, defValue interface{}) interface{} {
-	instance := context.Current().GetComponent(name)
+func GetWare(name string, defValue interface{}) interface{} {
+	instance := context.Current().GetWare(name)
 	if instance == nil {
 		instance = defValue
 	}
-	context.Current().SetComponent(name, instance)
+	context.Current().SetWare(name, instance)
 	return instance
 }

@@ -20,7 +20,10 @@
 
 package util
 
-import "bytes"
+import (
+	"bytes"
+	"strings"
+)
 
 func ReplaceAll(str, old, new string) string {
 	return string(bytes.ReplaceAll([]byte(str), []byte(old), []byte(new)))
@@ -28,4 +31,32 @@ func ReplaceAll(str, old, new string) string {
 
 func Replace(str, old, new string, n int) string {
 	return string(bytes.Replace([]byte(str), []byte(old), []byte(new), n))
+}
+
+func FillPrefix(src, ch string, ln int) string {
+	if len(src) >= ln {
+		return src
+	}
+	delta := ln - len(src)
+	
+	var sb strings.Builder
+	for i := 0; i < delta; i++ {
+		sb.WriteString(ch)
+	}
+	sb.WriteString(src)
+	return sb.String()
+}
+
+func FillSuffix(src, ch string, ln int) string {
+	if len(src) >= ln {
+		return src
+	}
+	delta := ln - len(src)
+
+	var sb strings.Builder
+	sb.WriteString(src)
+	for i := 0; i < delta; i++ {
+		sb.WriteString(ch)
+	}
+	return sb.String()
 }

@@ -42,11 +42,11 @@ type GoX struct {
 // 做一些初始化配置
 func init() {
 	context.Current().
-		SetComponent(common.FilterChainName, filter.NewFilterChain()). // 过滤器链
-		SetComponent(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()). // 请求分发器
-		SetComponent(common.InterceptorRegisterName, interceptor.NewInterceptorRegister()). // 拦截器
-		SetComponent(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()). // 参数处理器
-		SetComponent(common.ResultResolverName, resolver.NewSimpleResultResolver()) // 结果处理器
+		SetWareOnce(common.FilterChainName, filter.NewFilterChain()). // 过滤器链
+		SetWareOnce(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()). // 请求分发器
+		SetWareOnce(common.InterceptorRegisterName, interceptor.NewInterceptorRegister()). // 拦截器
+		SetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()). // 参数处理器
+		SetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()) // 结果处理器
 }
 
 func (r *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
@@ -64,11 +64,11 @@ func (r *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// -----------------------------------------------------------------------
 
 	// 过滤器链
-	filterChain := util.GetComponent(common.FilterChainName, filter.NewFilterChain()).(*filter.FilterChain)
+	filterChain := util.GetWare(common.FilterChainName, filter.NewFilterChain()).(*filter.FilterChain)
 	// 分发器
-	dispatch := util.GetComponent(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()).(*dispatcher.RequestDispatcher)
+	dispatch := util.GetWare(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()).(*dispatcher.RequestDispatcher)
 	// 拦截器
-	interceptorRegister := util.GetComponent(common.InterceptorRegisterName, interceptor.NewInterceptorRegister()).(*interceptor.InterceptorRegister)
+	interceptorRegister := util.GetWare(common.InterceptorRegisterName, interceptor.NewInterceptorRegister()).(*interceptor.InterceptorRegister)
 
 	// 将拦截器设置到分发器
 	dispatch.SetInterceptorRegister(interceptorRegister)
@@ -88,6 +88,16 @@ func (r *GoX) Configure(configure configure.WebConfigure) *GoX {
 	return r
 }
 
+func (r *GoX) NotFoundHandler(handler http.HandlerFunc) *GoX {
+	context.Current().NotFound = handler
+	return r
+}
+
+func (r *GoX) UnsupportedMethodHandler(handler http.HandlerFunc) *GoX {
+	context.Current().UnsupportedMethod = handler
+	return r
+}
+
 func (r *GoX) Mapping(path string, ctrl core.Controller) *GoX {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -104,9 +114,9 @@ func (r *GoX) Mapping(path string, ctrl core.Controller) *GoX {
 func (r *GoX) config(configure configure.WebConfigure) {
 	if configure != nil {
 		// 注册过滤器
-		configure.ConfigFilter(util.GetComponent(common.FilterChainName, filter.NewFilterChain()).(*filter.FilterChain))
+		configure.ConfigFilter(util.GetWare(common.FilterChainName, filter.NewFilterChain()).(*filter.FilterChain))
 
 		// 注册拦截器
-		configure.ConfigInterceptor(util.GetComponent(common.InterceptorRegisterName, interceptor.NewInterceptorRegister()).(*interceptor.InterceptorRegister))
+		configure.ConfigInterceptor(util.GetWare(common.InterceptorRegisterName, interceptor.NewInterceptorRegister()).(*interceptor.InterceptorRegister))
 	}
 }

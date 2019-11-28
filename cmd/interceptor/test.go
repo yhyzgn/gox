@@ -14,45 +14,29 @@
 
 // author : 颜洪毅
 // e-mail : yhyzgn@gmail.com
-// time   : 2019-11-25 14:47
+// time   : 2019-11-28 9:54
 // version: 1.0.0
 // desc   : 
 
-package main
+package interceptor
 
 import (
-	"fmt"
 	"github.com/yhyzgn/gog"
-	"github.com/yhyzgn/gox"
-	"github.com/yhyzgn/gox/cmd/controller"
 	"net/http"
+	"reflect"
 )
 
-const (
-	port = 8080
-)
-
-func main() {
-	handler := gox.NewGoX()
-
-	initWeb(handler)
-
-	server := http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
-		Handler: handler,
-	}
-
-	//gog.Debug("\n" + ioc.GetProvider().String())
-
-	gog.InfoF("GoX 启动于端口 【%d】", port)
-	err := server.ListenAndServe()
-	if err != nil {
-		gog.Error(err)
-	}
+type TestInterceptor struct {
 }
 
-func initWeb(r *gox.GoX) {
-	r.Configure(NewConfig())
+func NewTestInterceptor() *TestInterceptor {
+	return new(TestInterceptor)
+}
 
-	r.Mapping("/api/hello", new(controller.HelloController))
+func (ti *TestInterceptor) PreHandle(writer http.ResponseWriter, request *http.Request, handler reflect.Value) bool {
+	gog.DebugF("TestInterceptor: {}", request.URL.Path)
+	return true
+}
+
+func (ti *TestInterceptor) AfterHandle(writer http.ResponseWriter, request *http.Request, handler, result reflect.Value, err error) {
 }

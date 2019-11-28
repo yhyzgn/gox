@@ -21,9 +21,9 @@
 package wire
 
 import (
+	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/util"
-	"github.com/yhyzgn/gog"
 	"reflect"
 	"runtime"
 	"sort"
@@ -64,13 +64,13 @@ func (w *Wires) Mapping(path string, handler common.Handler, methods []common.Me
 		Methods: methods,
 		Params:  params,
 	}
-	// Path 节点  或者  路径长度 从长到端排序
+	// Request 节点  或者  路径长度 从长到端排序
 	w.sorted = appendSorted(w.sorted, wire)
 	w.wires[path] = wire
 
 	pc := reflect.Value(handler).Pointer()
 	name := util.ReplaceAll(runtime.FuncForPC(pc).Name(), "-fm", "(...)")
-	gog.InfoF("Mapped [%v --> %v] with http method %v", path, name, methods)
+	gog.InfoF("Mapped [%v-->\t%v] with http method %v", util.FillSuffix(path, " ", 40), name, methods)
 }
 
 func (w *Wires) Get(path string) *HandlerWire {
@@ -86,7 +86,7 @@ func appendSorted(wires []*HandlerWire, wire *HandlerWire) []*HandlerWire {
 	index := sort.Search(length, func(i int) bool {
 		tempNodeCount := strings.Split(wires[i].Path, "/")
 		wireNodeCount := strings.Split(wire.Path, "/")
-		// Path 节点  或者  路径长度 从长到端排序
+		// Request 节点  或者  路径长度 从长到端排序
 		return len(tempNodeCount) < len(wireNodeCount) || len(wires[i].Path) < len(wire.Path)
 	})
 	if index == length {

@@ -24,6 +24,7 @@ import (
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/component/interceptor"
+	"github.com/yhyzgn/gox/context"
 	"github.com/yhyzgn/gox/resolver"
 	"github.com/yhyzgn/gox/util"
 	"github.com/yhyzgn/gox/wire"
@@ -63,14 +64,15 @@ func (rd *RequestDispatcher) Dispatch(writer http.ResponseWriter, request *http.
 		}
 	}
 
-	// TODO 匹配不到，就只能 404 啦~🌶🌶
-	http.NotFound(writer, request)
+	// 匹配不到，就只能 404 啦~
+	context.Current().NotFound(writer, request)
 }
 
 func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.ResponseWriter, request *http.Request, isRESTFul bool) {
 	md := resolver.VerifyMethod(hw, request.Method)
 	if !md {
-		// TODO 不支持的 http 方法
+		// 不支持的 http 方法
+		context.Current().UnsupportedMethod(writer, request)
 		return
 	}
 
@@ -78,9 +80,9 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	handler := reflect.Value(hw.Handler)
 
 	// 参数处理器
-	argumentResolver := util.GetComponent(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()).(resolver.ArgumentResolver)
+	argumentResolver := util.GetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()).(resolver.ArgumentResolver)
 	// 结果处理器
-	resultResolver := util.GetComponent(common.ResultResolverName, resolver.NewSimpleResultResolver()).(resolver.ResultResolver)
+	resultResolver := util.GetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()).(resolver.ResultResolver)
 
 	// 获取到处理后的参数
 	args := argumentResolver.Resolve(hw, writer, request, isRESTFul)
@@ -90,6 +92,15 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	if rd.register != nil {
 		pass, path := rd.register.Iterate(func(index int, path string, interceptor interceptor.Interceptor) (skip, passed bool) {
 			// 匹配 path，未匹配到的直接跳过
+			defer func() {
+				if skip {
+					gog.TraceF("The request [%v] has skipped by interceptor [%v].", request.URL.Path, path)
+				} else if passed {
+					gog.TraceF("The request [%v] has passed by interceptor [%v].", request.URL.Path, path)
+				} else {
+					gog.TraceF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
+				}
+			}()
 			if path == "/" {
 				// 所有请求
 				return false, interceptor.PreHandle(writer, request, handler)
@@ -114,7 +125,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 
 		// 拦截器不通过
 		if !pass {
-			gog.TraceF("Current request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
+			gog.TraceF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
 			return
 		}
 	}

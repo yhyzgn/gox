@@ -21,13 +21,19 @@
 package context
 
 import (
+	"fmt"
 	"github.com/yhyzgn/ghost/config"
+	"net/http"
 	"sync"
 )
 
 type GoXContext struct {
-	reader     *config.Reader
-	components map[string]interface{}
+	reader            *config.Reader
+	wares             map[string]interface{}
+	onceMap           map[string]bool
+	errorHandlers     map[int]http.HandlerFunc
+	NotFound          http.HandlerFunc
+	UnsupportedMethod http.HandlerFunc
 }
 
 var (
@@ -38,8 +44,14 @@ var (
 func init() {
 	once.Do(func() {
 		current = &GoXContext{
-			reader:     config.NewReader(),
-			components: make(map[string]interface{}),
+			reader:        config.NewReader(),
+			wares:         make(map[string]interface{}),
+			onceMap:       make(map[string]bool),
+			errorHandlers: make(map[int]http.HandlerFunc),
+			NotFound:      http.NotFound,
+			UnsupportedMethod: func(writer http.ResponseWriter, request *http.Request) {
+				http.Error(writer, fmt.Sprintf("Unsupported http method [%v].", request.Method), http.StatusMethodNotAllowed)
+			},
 		}
 	})
 }
@@ -52,11 +64,30 @@ func (c *GoXContext) Read(filename string) (data []byte, errs error) {
 	return c.reader.Read(filename)
 }
 
-func (c *GoXContext) SetComponent(name string, component interface{}) ComponentContext {
-	c.components[name] = component
+func (c *GoXContext) SetWare(name string, ware interface{}) WareContext {
+	if !c.onceMap[name] {
+		c.wares[name] = ware
+	}
 	return c
 }
 
-func (c *GoXContext) GetComponent(name string) interface{} {
-	return c.components[name]
+func (c *GoXContext) SetWareOnce(name string, ware interface{}) WareContext {
+	if c.wares[name] == nil && !c.onceMap[name] {
+		c.wares[name] = ware
+		c.onceMap[name] = true
+	}
+	return c
+}
+
+func (c *GoXContext) GetWare(name string) interface{} {
+	return c.wares[name]
+}
+
+func (c *GoXContext) AddErrorHandler(statusCode int, handler http.HandlerFunc) *GoXContext {
+	c.errorHandlers[statusCode] = handler
+	return c
+}
+
+func (c *GoXContext) GetErrorHandler(statusCode int) http.HandlerFunc {
+	return c.errorHandlers[statusCode]
 }

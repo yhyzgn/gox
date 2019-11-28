@@ -22,10 +22,10 @@ package resolver
 
 import (
 	"encoding/json"
+	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/util"
 	"github.com/yhyzgn/gox/wire"
-	"github.com/yhyzgn/gog"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -60,33 +60,34 @@ func (sar SimpleArgumentResolver) Resolve(hw *wire.HandlerWire, writer http.Resp
 	}
 	args := make([]reflect.Value, 0)
 
-	if hw.Params != nil && len(hw.Params) > 0 {
-		// 已经注册过参数，这里就需要获取参数
-		pos := 0
-		for i := 0; i < paramCount; i++ {
-			tp := x.In(i)
-			if tp.Kind() == reflect.Ptr {
-				tp = tp.Elem()
-			}
-			pkg := tp.PkgPath()
-			kind := tp.Kind()
-			name := tp.Name()
+	hasParams := hw.Params != nil && len(hw.Params) > 0
 
-			if pkg == "net/http" {
-				// 可能是 http.ResponseWriter 或者 *http.Request
-				if kind == reflect.Interface && name == "ResponseWriter" {
-					// http.ResponseWriter
-					args = append(args, reflect.ValueOf(writer))
-					continue
-				}
+	pos := 0
+	for i := 0; i < paramCount; i++ {
+		tp := x.In(i)
+		if tp.Kind() == reflect.Ptr {
+			tp = tp.Elem()
+		}
+		pkg := tp.PkgPath()
+		kind := tp.Kind()
+		name := tp.Name()
 
-				if kind == reflect.Struct && name == "Request" {
-					// http.Request
-					args = append(args, reflect.ValueOf(request))
-					continue
-				}
+		if pkg == "net/http" {
+			// 可能是 http.ResponseWriter 或者 *http.Request
+			if kind == reflect.Interface && name == "ResponseWriter" {
+				// http.ResponseWriter
+				args = append(args, reflect.ValueOf(writer))
+				continue
 			}
 
+			if kind == reflect.Struct && name == "Request" {
+				// http.Request
+				args = append(args, reflect.ValueOf(request))
+				continue
+			}
+		}
+
+		if hasParams {
 			param := hw.Params[pos]
 			pos++
 
@@ -169,34 +170,145 @@ func (sar SimpleArgumentResolver) Resolve(hw *wire.HandlerWire, writer http.Resp
 			// 添加到参数列表
 			args = append(args, stringToValue(param, temp))
 		}
-	} else {
-		// 未注册，可能会有 http.ResponseWriter 和 *http.Request
-		// 其他参数先不管啦~
-		for i := 0; i < paramCount; i++ {
-			tp := x.In(i)
-			if tp.Kind() == reflect.Ptr {
-				tp = tp.Elem()
-			}
-			pkg := tp.PkgPath()
-			kind := tp.Kind()
-			name := tp.Name()
-
-			if pkg == "net/http" {
-				// 可能是 http.ResponseWriter 或者 *http.Request
-				if kind == reflect.Interface && name == "ResponseWriter" {
-					// http.ResponseWriter
-					args = append(args, reflect.ValueOf(writer))
-					continue
-				}
-
-				if kind == reflect.Struct && name == "Request" {
-					// http.Request
-					args = append(args, reflect.ValueOf(request))
-					continue
-				}
-			}
-		}
 	}
+
+	//if hw.Params != nil && len(hw.Params) > 0 {
+	//	// 已经注册过参数，这里就需要获取参数
+	//	pos := 0
+	//	for i := 0; i < paramCount; i++ {
+	//		tp := x.In(i)
+	//		if tp.Kind() == reflect.Ptr {
+	//			tp = tp.Elem()
+	//		}
+	//		pkg := tp.PkgPath()
+	//		kind := tp.Kind()
+	//		name := tp.Name()
+	//
+	//		if pkg == "net/http" {
+	//			// 可能是 http.ResponseWriter 或者 *http.Request
+	//			if kind == reflect.Interface && name == "ResponseWriter" {
+	//				// http.ResponseWriter
+	//				args = append(args, reflect.ValueOf(writer))
+	//				continue
+	//			}
+	//
+	//			if kind == reflect.Struct && name == "Request" {
+	//				// http.Request
+	//				args = append(args, reflect.ValueOf(request))
+	//				continue
+	//			}
+	//		}
+	//
+	//		param := hw.Params[pos]
+	//		pos++
+	//
+	//		// RESTful 格式传参
+	//		if param.InPath && pathVariables != nil {
+	//			index := util.GetPathVariableIndex(param.Name, hw.Path)
+	//			if index > -1 {
+	//				// 找到啦~
+	//				// 找到位置后，去 url path 的对应位置上获取参数值即可
+	//				temp := getPathVariableValue(index, path)
+	//				// 添加到参数列表
+	//				args = append(args, stringToValue(param, temp))
+	//			} else {
+	//				gog.ErrorF("The path [%v] has not contains path variable [%v].", hw.Path, param.Name)
+	//			}
+	//			continue
+	//		}
+	//
+	//		// 从请求头获取
+	//		if param.InHeader {
+	//			temp := request.Header.Get(param.Name)
+	//			if temp == "" && param.Required {
+	//				gog.ErrorF("Maybe the param [%v] in request header defected.", param.Name)
+	//				continue
+	//			}
+	//			// 添加到参数列表
+	//			args = append(args, stringToValue(param, temp))
+	//			continue
+	//		}
+	//
+	//		// 有 requestBody 参数
+	//		// 仅支持 POST 方法
+	//		if param.IsBody {
+	//			if request.Method != http.MethodPost && request.Method != http.MethodPut {
+	//				gog.ErrorF("RequestBody only support 'POST' and 'PUT' method, but now is [%v].", request.Method)
+	//				continue
+	//			}
+	//
+	//			if !VerifyMethod(hw, http.MethodPost) && !VerifyMethod(hw, http.MethodPut) {
+	//				gog.ErrorF("Maybe the handler [%v] should be register as 'POST' or 'PUT' method, now is %v.", handlerName, hw.Methods)
+	//				continue
+	//			}
+	//
+	//			// 获取到 requestBody
+	//			bs := util.RecycleRequestBody(request)
+	//			if bs != nil {
+	//				var arg interface{}
+	//				switch kind {
+	//				case reflect.Map:
+	//					arg = reflect.MakeMap(tp).Interface()
+	//					break
+	//				case reflect.Slice:
+	//					arg = reflect.MakeSlice(tp, 0, 0).Interface()
+	//					break
+	//				case reflect.Struct:
+	//					arg = reflect.New(tp).Interface()
+	//					break
+	//				}
+	//				err := json.Unmarshal(bs, &arg)
+	//				if err != nil {
+	//					gog.Error(err)
+	//					continue
+	//				}
+	//				// 添加到参数列表
+	//				args = append(args, reflect.ValueOf(arg))
+	//			}
+	//			continue
+	//		}
+	//
+	//		// 普通参数
+	//		// 先从 URL 中获取
+	//		temp := request.URL.Query().Get(param.Name)
+	//		if temp == "" {
+	//			// 从 form 中获取
+	//			temp = request.FormValue(param.Name)
+	//			if temp == "" && request.Method == http.MethodPost {
+	//				temp = request.PostFormValue(param.Name)
+	//			}
+	//		}
+	//		// 添加到参数列表
+	//		args = append(args, stringToValue(param, temp))
+	//	}
+	//} else {
+	//	// 未注册，可能会有 http.ResponseWriter 和 *http.Request
+	//	// 其他参数先不管啦~
+	//	for i := 0; i < paramCount; i++ {
+	//		tp := x.In(i)
+	//		if tp.Kind() == reflect.Ptr {
+	//			tp = tp.Elem()
+	//		}
+	//		pkg := tp.PkgPath()
+	//		kind := tp.Kind()
+	//		name := tp.Name()
+	//
+	//		if pkg == "net/http" {
+	//			// 可能是 http.ResponseWriter 或者 *http.Request
+	//			if kind == reflect.Interface && name == "ResponseWriter" {
+	//				// http.ResponseWriter
+	//				args = append(args, reflect.ValueOf(writer))
+	//				continue
+	//			}
+	//
+	//			if kind == reflect.Struct && name == "Request" {
+	//				// http.Request
+	//				args = append(args, reflect.ValueOf(request))
+	//				continue
+	//			}
+	//		}
+	//	}
+	//}
 
 	return args
 }

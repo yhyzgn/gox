@@ -32,7 +32,7 @@ type A struct {
 }
 
 func (a A) Mapping(mapper *core.Mapper) {
-	mapper.Path("/hello").HandlerFunc(a.Hello).Method(http.MethodGet, http.MethodPost).Param("name").Param("age").Mapping()
+	mapper.Request("/hello").HandlerFunc(a.Hello).Method(http.MethodGet, http.MethodPost).Param("name").Param("age").Mapping()
 }
 
 func (A) Hello(name string, age int, writer http.ResponseWriter, request *http.Request) string {

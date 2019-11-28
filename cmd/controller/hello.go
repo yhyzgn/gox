@@ -29,10 +29,10 @@ type HelloController struct {
 }
 
 func (h HelloController) Mapping(mapper *core.Mapper) {
-	mapper.Path("/hello").HandlerFunc(h.Hello).Mapping()
-	mapper.Path("/param").HandlerFunc(h.Param).Param("param").Mapping()
-	mapper.Path("/rest/{id}").HandlerFunc(h.Rest).PathVariable("id").Mapping()
-	mapper.Path("/json").HandlerFunc(h.JSON).Param("age").Mapping()
+	mapper.Request("/hello").HandlerFunc(h.Hello).Mapping()
+	mapper.Request("/param").HandlerFunc(h.Param).Param("param").Mapping()
+	mapper.Request("/rest/{id}").HandlerFunc(h.Rest).PathVariable("id").Mapping()
+	mapper.Request("/json").HandlerFunc(h.JSON).Param("age").Mapping()
 }
 
 func (h HelloController) Hello() string {

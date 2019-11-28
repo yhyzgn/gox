@@ -49,6 +49,7 @@ func (fc *FilterChain) SetDispatcher(dispatcher dispatcher.Dispatcher) {
 func (fc *FilterChain) AddFilter(path string, filter Filter) *FilterChain {
 	fc.filters = append(fc.filters, filter)
 	fc.pathMap[len(fc.filters)-1] = path
+	gog.InfoF("The Filter [%v] registered.", path)
 	return fc
 }
 

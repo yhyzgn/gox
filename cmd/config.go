@@ -21,7 +21,8 @@
 package main
 
 import (
-	test "github.com/yhyzgn/gox/cmd/filter"
+	testFilter "github.com/yhyzgn/gox/cmd/filter"
+	testInterceptor "github.com/yhyzgn/gox/cmd/interceptor"
 	"github.com/yhyzgn/gox/component/filter"
 	"github.com/yhyzgn/gox/component/interceptor"
 )
@@ -35,10 +36,10 @@ func NewConfig() *Config {
 
 func (c *Config) ConfigFilter(chain *filter.FilterChain) {
 	chain.
-		AddFilter("/", test.NewTestFilter()).
-		AddFilter("/api/*", test.NewLogFilter())
+		AddFilter("/", testFilter.NewTestFilter()).
+		AddFilter("/api/*", testFilter.NewLogFilter())
 }
 
 func (c *Config) ConfigInterceptor(register *interceptor.InterceptorRegister) {
-
+	register.AddInterceptor("/", testInterceptor.NewTestInterceptor())
 }
