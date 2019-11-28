@@ -24,9 +24,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/yhyzgn/gox/common"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"strings"
 )
 
@@ -117,4 +119,38 @@ func ResponseBytes(writer http.ResponseWriter, bytes []byte) (err error) {
 	writer.WriteHeader(http.StatusOK)
 	_, err = writer.Write(bytes)
 	return
+}
+
+// FormatHandlerArgs 格式化方法参数
+func FormatRealArgsValue(args []reflect.Value) string {
+	var sb strings.Builder
+	sb.WriteString("(")
+	if args != nil && len(args) > 0 {
+		for i, arg := range args {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(fmt.Sprint(arg.Interface()))
+		}
+	}
+	sb.WriteString(")")
+	return sb.String()
+}
+
+// FormatHandlerArgs 格式化方法参数
+func FormatHandlerArgs(params []*common.Param) string {
+	var sb strings.Builder
+	sb.WriteString("(")
+	if params != nil && len(params) > 0 {
+		for i, param := range params {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(param.Name)
+			sb.WriteString(" ")
+			sb.WriteString(param.Type.Name())
+		}
+	}
+	sb.WriteString(")")
+	return sb.String()
 }

@@ -22,6 +22,7 @@ package dispatcher
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/component/interceptor"
@@ -100,7 +101,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	// 再调用参数处理器处理
 	argumentResolver.Resolve(args, writer, request, handler)
 
-	gog.TraceF("Params of request path [{}] are {}, matched router [{}] of params {}", request.URL.Path, args, hw.Path, hw.Params)
+	gog.InfoF("Params of request path [{}] are [{}], matched router [{}] of params [{}]", request.URL.Path, util.FormatRealArgsValue(args), hw.Path, util.FormatHandlerArgs(hw.Params))
 
 	// 处理前，执行拦截器 PreHandle() 方法
 	if rd.register != nil {
@@ -108,11 +109,11 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 			// 匹配 path，未匹配到的直接跳过
 			defer func() {
 				if skip {
-					gog.TraceF("The request [%v] has skipped by interceptor [%v].", request.URL.Path, path)
+					gog.InfoF("The request [%v] has skipped by interceptor [%v].", request.URL.Path, path)
 				} else if passed {
-					gog.TraceF("The request [%v] has passed by interceptor [%v].", request.URL.Path, path)
+					gog.InfoF("The request [%v] has passed by interceptor [%v].", request.URL.Path, path)
 				} else {
-					gog.TraceF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
+					gog.InfoF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
 				}
 			}()
 			if path == "/" {
@@ -138,7 +139,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 
 		// 拦截器不通过
 		if !pass {
-			gog.TraceF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
+			gog.InfoF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
 			return
 		}
 	}
@@ -179,7 +180,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 }
 
 // resolve 初步处理参数
-// TODO 待完善功能：不可空参数处理 & 文件上传 & 错误码处理
+// TODO 待完善功能：参数VO处理 & 文件上传
 func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseWriter, request *http.Request, isRESTFul bool) []reflect.Value {
 	path := request.URL.Path
 	handler := reflect.Value(hw.Handler)
@@ -188,7 +189,7 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 	x := handler.Type()
 	paramCount := x.NumIn()
 	pc := handler.Pointer()
-	handlerName := util.ReplaceAll(runtime.FuncForPC(pc).Name(), "-fm", "(...)")
+	handlerName := util.ReplaceAll(runtime.FuncForPC(pc).Name(), "-fm", util.FormatHandlerArgs(hw.Params))
 
 	var pathVariables []string
 	if isRESTFul {
@@ -243,7 +244,9 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 					// 添加到参数列表
 					args = append(args, StringToValue(kd, temp))
 				} else {
-					gog.ErrorF("The path [%v] has not contains path variable [%v].", hw.Path, param.Name)
+					gog.ErrorF("The path [%v] does not contains path variable [%v].", hw.Path, param.Name)
+					http.Error(writer, fmt.Sprintf("The path [%v] does not contains path variable [%v].", hw.Path, param.Name), http.StatusBadRequest)
+					return nil
 				}
 				continue
 			}
@@ -252,8 +255,9 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 			if param.InHeader {
 				temp := request.Header.Get(param.Name)
 				if temp == "" && param.Required {
-					gog.ErrorF("Maybe the param [%v] in request header defected.", param.Name)
-					continue
+					gog.ErrorF("The param [%v] is nested, but received value is empty.", param.Name)
+					http.Error(writer, fmt.Sprintf("The param [%v] is nested, but received value is empty.", param.Name), http.StatusBadRequest)
+					return nil
 				}
 				// 添加到参数列表
 				args = append(args, StringToValue(kd, temp))
@@ -265,12 +269,14 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 			if param.IsBody {
 				if request.Method != http.MethodPost && request.Method != http.MethodPut {
 					gog.ErrorF("RequestBody only support 'POST' and 'PUT' method, but now is [%v].", request.Method)
-					continue
+					http.Error(writer, fmt.Sprintf("RequestBody only support 'POST' and 'PUT' method, but now is [%v].", request.Method), http.StatusMethodNotAllowed)
+					return nil
 				}
 
 				if !VerifyMethod(hw, http.MethodPost) && !VerifyMethod(hw, http.MethodPut) {
 					gog.ErrorF("Maybe the handler [%v] should be register as 'POST' or 'PUT' method, now is %v.", handlerName, hw.Methods)
-					continue
+					http.Error(writer, fmt.Sprintf("RequestBody only support 'POST' and 'PUT' method, but now is [%v].", request.Method), http.StatusMethodNotAllowed)
+					return nil
 				}
 
 				// 获取到 requestBody
@@ -309,6 +315,14 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 					temp = request.PostFormValue(param.Name)
 				}
 			}
+
+			// 如果没获取到参数但又必须，则直接报错
+			if temp == "" && param.Required {
+				gog.ErrorF("The param [%v] is nested, but received value is empty.", param.Name)
+				http.Error(writer, fmt.Sprintf("The param [%v] is nested, but received value is empty.", param.Name), http.StatusBadRequest)
+				return nil
+			}
+
 			// 添加到参数列表
 			args = append(args, StringToValue(kd, temp))
 		}

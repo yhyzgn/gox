@@ -87,5 +87,5 @@ func (srr *SimpleResultResolver) Resolve(hw *wire.HandlerWire, values []reflect.
 
 // Response 响应结果
 func (srr *SimpleResultResolver) Response(value reflect.Value, writer http.ResponseWriter) {
-	util.ResponseJSON(writer, value)
+	util.ResponseJSON(writer, value.Interface())
 }

@@ -83,23 +83,23 @@ func (fc *Chain) DoFilter(writer http.ResponseWriter, request *http.Request) {
 	// 匹配 path，未匹配到的 filter 直接跳过
 	if path == "/" {
 		// 所有请求
-		gog.TraceF("The request path [%v] matched filter path [/]", request.URL.Path)
+		gog.InfoF("The request path [%v] matched filter path [/]", request.URL.Path)
 		filter.DoFilter(writer, request, fc)
 	} else if reg, e := regexp.Compile("/\\*+$"); e == nil && reg.MatchString(path) {
 		// 前缀匹配
 		pattern := reg.ReplaceAllString(path, "/.+?")
 		if matched, err := regexp.MatchString("^"+pattern+"$", request.URL.Path); matched && err == nil {
 			// 前缀匹配成功，走过滤器
-			gog.TraceF("The request path [%v] matched filter path [%v]", request.URL.Path, path)
+			gog.InfoF("The request path [%v] matched filter path [%v]", request.URL.Path, path)
 			filter.DoFilter(writer, request, fc)
 		} else {
-			gog.TraceF("The request path [%v] has not matched filter path [%v]", request.URL.Path, path)
+			gog.InfoF("The request path [%v] has not matched filter path [%v]", request.URL.Path, path)
 		}
 	} else if path == request.URL.Path {
 		// 严格匹配，只有路径完全相同才走过滤器
-		gog.TraceF("The request path [%v] matched filter path [%v]", request.URL.Path, path)
+		gog.InfoF("The request path [%v] matched filter path [%v]", request.URL.Path, path)
 		filter.DoFilter(writer, request, fc)
 	} else {
-		gog.TraceF("The request path [%v] has not matched filter path [%v]", request.URL.Path, path)
+		gog.InfoF("The request path [%v] has not matched filter path [%v]", request.URL.Path, path)
 	}
 }

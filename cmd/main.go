@@ -42,8 +42,6 @@ func main() {
 		Handler: handler,
 	}
 
-	//gog.Debug("\n" + ioc.GetProvider().String())
-
 	gog.InfoF("GoX 启动于端口 【%d】", port)
 	err := server.ListenAndServe()
 	if err != nil {

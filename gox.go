@@ -51,7 +51,7 @@ func init() {
 }
 
 // ServeHTTP 接收处理请求
-func (r *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (gx *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// 每个请求 过滤器 开始标记
 	request = util.SetRequestAttribute(request, common.RequestFilterIndexName, 0)
 
@@ -87,27 +87,32 @@ func NewGoX() *GoX {
 }
 
 // Configure 配置 Web
-func (r *GoX) Configure(configure configure.WebConfigure) *GoX {
-	r.config(configure)
-	return r
+func (gx *GoX) Configure(configure configure.WebConfigure) *GoX {
+	gx.config(configure)
+	return gx
 }
 
 // NotFoundHandler 配置 404 处理器
-func (r *GoX) NotFoundHandler(handler http.HandlerFunc) *GoX {
+func (gx *GoX) NotFoundHandler(handler http.HandlerFunc) *GoX {
 	context.Current().NotFound = handler
-	return r
+	return gx
 }
 
 // UnsupportedMethodHandler 配置 方法不支持 处理器
-func (r *GoX) UnsupportedMethodHandler(handler http.HandlerFunc) *GoX {
+func (gx *GoX) UnsupportedMethodHandler(handler http.HandlerFunc) *GoX {
 	context.Current().UnsupportedMethod = handler
-	return r
+	return gx
+}
+
+func (gx *GoX) ErrorCodeHandler(statusCode int, handler http.HandlerFunc) *GoX {
+	context.Current().AddErrorHandler(statusCode, handler)
+	return gx
 }
 
 // Mapping 添加 控制器 映射
-func (r *GoX) Mapping(path string, ctrl core.Controller) *GoX {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (gx *GoX) Mapping(path string, ctrl core.Controller) *GoX {
+	gx.mu.Lock()
+	defer gx.mu.Unlock()
 	// 创建一个 处理器映射器对象
 	mapper := core.NewMapper(path, ctrl)
 	// 执行每个控制器的 Mapping() 方法，完成 处理器的注册
@@ -115,11 +120,11 @@ func (r *GoX) Mapping(path string, ctrl core.Controller) *GoX {
 
 	// 注册到 IOC
 	ioc.GetProvider().Single("", ctrl)
-	return r
+	return gx
 }
 
 // config 触发配置装载
-func (r *GoX) config(configure configure.WebConfigure) {
+func (gx *GoX) config(configure configure.WebConfigure) {
 	if configure != nil {
 		// 注册过滤器
 		configure.ConfigFilter(util.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain))

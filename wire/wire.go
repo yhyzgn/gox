@@ -73,7 +73,7 @@ func (w *Wires) Mapping(path string, handler common.Handler, methods []common.Me
 	w.wires[path] = wire
 
 	pc := reflect.Value(handler).Pointer()
-	name := util.ReplaceAll(runtime.FuncForPC(pc).Name(), "-fm", "(...)")
+	name := util.ReplaceAll(runtime.FuncForPC(pc).Name(), "-fm", util.FormatHandlerArgs(wire.Params))
 	gog.InfoF("Mapped [%v-->\t%v] with http method %v", util.FillSuffix(path, " ", 40), name, methods)
 }
 
