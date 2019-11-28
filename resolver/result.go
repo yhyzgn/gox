@@ -21,8 +21,6 @@
 package resolver
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/yhyzgn/gox/util"
 	"github.com/yhyzgn/gox/wire"
@@ -31,19 +29,27 @@ import (
 	"runtime"
 )
 
+// ResultResolver 结果处理器
 type ResultResolver interface {
+	// Resolve 处理结果集
 	Resolve(hw *wire.HandlerWire, values []reflect.Value, writer http.ResponseWriter, request *http.Request) (reflect.Value, error)
 
+	// Response 响应结果
 	Response(value reflect.Value, writer http.ResponseWriter)
 }
 
+// SimpleResultResolver 默认的结果处理器
 type SimpleResultResolver struct {
 }
 
+// NewSimpleResultResolver 创建新的结果处理器对象
 func NewSimpleResultResolver() *SimpleResultResolver {
 	return new(SimpleResultResolver)
 }
 
+// Resolve 处理结果集
+// 只接受最多两个返回值的结果集
+// 如果不满足需求，可自定义
 func (srr *SimpleResultResolver) Resolve(hw *wire.HandlerWire, values []reflect.Value, writer http.ResponseWriter, request *http.Request) (value reflect.Value, err error) {
 	path := request.URL.Path
 	handler := reflect.Value(hw.Handler)
@@ -75,23 +81,11 @@ func (srr *SimpleResultResolver) Resolve(hw *wire.HandlerWire, values []reflect.
 	}
 
 	// 结果不能超过2个
-	err = errors.New(fmt.Sprintf("The path [%v] handled [%v] support 2 results at most, but now is [%d].", path, handlerName, ln))
+	err = fmt.Errorf("the path [%v] handled [%v] support 2 results at most, but now is [%d]", path, handlerName, ln)
 	return
 }
 
+// Response 响应结果
 func (srr *SimpleResultResolver) Response(value reflect.Value, writer http.ResponseWriter) {
-	util.SetResponseWriterHeader(writer, "Content-Type", "application/json; charset=utf-8")
-	writer.WriteHeader(http.StatusOK)
-	if val := value.Interface(); val != nil {
-		bs, err := json.Marshal(val)
-		if err == nil {
-			_, err = writer.Write(bs)
-			if err == nil {
-				return
-			}
-		}
-		_, _ = writer.Write([]byte(err.Error()))
-		return
-	}
-	_, _ = writer.Write([]byte("nil response"))
+	util.ResponseJSON(writer, value)
 }

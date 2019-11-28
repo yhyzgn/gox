@@ -16,32 +16,41 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-26 16:57
 // version: 1.0.0
-// desc   : 
+// desc   : 拦截器注册器
 
 package interceptor
 
 import "github.com/yhyzgn/gog"
 
-type InterceptorRegister struct {
+// Register 拦截器注册器
+type Register struct {
 	interceptors []Interceptor
 	pathMap      map[int]string
 }
 
-func NewInterceptorRegister() *InterceptorRegister {
-	return &InterceptorRegister{
+// NewRegister 新的注册器
+func NewRegister() *Register {
+	return &Register{
 		interceptors: make([]Interceptor, 0),
 		pathMap:      make(map[int]string),
 	}
 }
 
-func (ir *InterceptorRegister) AddInterceptor(path string, interceptor Interceptor) *InterceptorRegister {
+// AddInterceptor 添加拦截器
+// 添加顺序 即 执行顺序
+// path 匹配方式：
+// 				/		->		所有请求
+//				/xx		->		严格匹配
+//				/xx/*	->		前缀匹配
+func (ir *Register) AddInterceptor(path string, interceptor Interceptor) *Register {
 	ir.interceptors = append(ir.interceptors, interceptor)
 	ir.pathMap[len(ir.interceptors)-1] = path
 	gog.InfoF("The Interceptor [%v] registered.", path)
 	return ir
 }
 
-func (ir *InterceptorRegister) Iterate(iterator func(index int, path string, interceptor Interceptor) (skip, passed bool)) (bool, string) {
+// Iterate 遍历所有拦截器，并执行相应回到操作
+func (ir *Register) Iterate(iterator func(index int, path string, interceptor Interceptor) (skip, passed bool)) (bool, string) {
 	if iterator != nil {
 		var (
 			skip   bool
@@ -62,7 +71,8 @@ func (ir *InterceptorRegister) Iterate(iterator func(index int, path string, int
 	return true, ""
 }
 
-func (ir *InterceptorRegister) ReverseIterate(iterator func(index int, path string, interceptor Interceptor)) {
+// ReverseIterate 逆序遍历所有拦截器，并执行相应回到操作
+func (ir *Register) ReverseIterate(iterator func(index int, path string, interceptor Interceptor)) {
 	if iterator != nil {
 		for i := len(ir.interceptors) - 1; i >= 0; i-- {
 			iterator(i, ir.pathMap[i], ir.interceptors[i])

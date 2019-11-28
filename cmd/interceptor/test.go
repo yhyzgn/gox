@@ -22,6 +22,7 @@ package interceptor
 
 import (
 	"github.com/yhyzgn/gog"
+	"github.com/yhyzgn/gox/common"
 	"net/http"
 	"reflect"
 )
@@ -33,10 +34,10 @@ func NewTestInterceptor() *TestInterceptor {
 	return new(TestInterceptor)
 }
 
-func (ti *TestInterceptor) PreHandle(writer http.ResponseWriter, request *http.Request, handler reflect.Value) bool {
+func (ti *TestInterceptor) PreHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler) bool {
 	gog.DebugF("TestInterceptor: {}", request.URL.Path)
 	return true
 }
 
-func (ti *TestInterceptor) AfterHandle(writer http.ResponseWriter, request *http.Request, handler, result reflect.Value, err error) {
+func (ti *TestInterceptor) AfterHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler, result reflect.Value, err error) {
 }

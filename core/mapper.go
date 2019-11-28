@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-24 1:38 上午
 // version: 1.0.0
-// desc   : 
+// desc   : 处理器映射器
 
 package core
 
@@ -25,14 +25,21 @@ import (
 	"net/http"
 )
 
+// Mapper 处理器映射器
 type Mapper struct {
-	route *Route
+	path string
+	ctrl Controller
 }
 
-func NewMapper(route *Route) *Mapper {
-	return &Mapper{route: route}
+// NewMapper 创建映射器
+func NewMapper(path string, ctrl Controller) *Mapper {
+	return &Mapper{
+		path: path,
+		ctrl: ctrl,
+	}
 }
 
+// Request 注册一个新的处理器
 func (mp *Mapper) Request(path string) *Ship {
 	return &Ship{
 		mapper:  mp,
@@ -42,56 +49,47 @@ func (mp *Mapper) Request(path string) *Ship {
 	}
 }
 
+// Get 注册一个 GET 请求的处理器
 func (mp *Mapper) Get(path string) *Ship {
-	hm := mp.Request(path)
-	hm.methods = append(hm.methods, http.MethodGet)
-	return hm
+	return mp.Request(path).Method(http.MethodGet)
 }
 
+// Head 注册一个 HEAD 请求的处理器
 func (mp *Mapper) Head(path string) *Ship {
-	hm := mp.Request(path)
-	hm.methods = append(hm.methods, http.MethodHead)
-	return hm
+	return mp.Request(path).Method(http.MethodHead)
 }
 
+// Post 注册一个 POST 请求的处理器
 func (mp *Mapper) Post(path string) *Ship {
-	hm := mp.Request(path)
-	hm.methods = append(hm.methods, http.MethodPost)
-	return hm
+	return mp.Request(path).Method(http.MethodPost)
 }
 
+// Put 注册一个 PUT 请求的处理器
 func (mp *Mapper) Put(path string) *Ship {
-	hm := mp.Request(path)
-	hm.methods = append(hm.methods, http.MethodPut)
-	return hm
+	return mp.Request(path).Method(http.MethodPut)
 }
 
+// Patch 注册一个 PATCH 请求的处理器
 func (mp *Mapper) Patch(path string) *Ship {
-	hm := mp.Request(path)
-	hm.methods = append(hm.methods, http.MethodPatch)
-	return hm
+	return mp.Request(path).Method(http.MethodPatch)
 }
 
+// Delete 注册一个 DELETE 请求的处理器
 func (mp *Mapper) Delete(path string) *Ship {
-	hm := mp.Request(path)
-	hm.methods = append(hm.methods, http.MethodDelete)
-	return hm
+	return mp.Request(path).Method(http.MethodDelete)
 }
 
+// Connect 注册一个 CONNECT 请求的处理器
 func (mp *Mapper) Connect(path string) *Ship {
-	hm := mp.Request(path)
-	hm.methods = append(hm.methods, http.MethodConnect)
-	return hm
+	return mp.Request(path).Method(http.MethodConnect)
 }
 
+// Options 注册一个 OPTIONS 请求的处理器
 func (mp *Mapper) Options(path string) *Ship {
-	hm := mp.Request(path)
-	hm.methods = append(hm.methods, http.MethodOptions)
-	return hm
+	return mp.Request(path).Method(http.MethodOptions)
 }
 
+// Trace 注册一个 TRACE 请求的处理器
 func (mp *Mapper) Trace(path string) *Ship {
-	hm := mp.Request(path)
-	hm.methods = append(hm.methods, http.MethodTrace)
-	return hm
+	return mp.Request(path).Method(http.MethodTrace)
 }

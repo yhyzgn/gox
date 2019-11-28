@@ -16,11 +16,12 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-24 3:00 上午
 // version: 1.0.0
-// desc   : 
+// desc   : 请求分发器-实现类
 
 package dispatcher
 
 import (
+	"encoding/json"
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/component/interceptor"
@@ -31,20 +32,28 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
+	"runtime"
+	"strconv"
+	"strings"
 )
 
+// RequestDispatcher 请求分发器-实现类
 type RequestDispatcher struct {
-	register *interceptor.InterceptorRegister
+	register *interceptor.Register
 }
 
+// NewRequestDispatcher 创建新的分发器
 func NewRequestDispatcher() *RequestDispatcher {
 	return new(RequestDispatcher)
 }
 
-func (rd *RequestDispatcher) SetInterceptorRegister(register *interceptor.InterceptorRegister) {
+// SetInterceptorRegister 配置拦截器注册器
+// 用于请求分发后的拦截操作
+func (rd *RequestDispatcher) SetInterceptorRegister(register *interceptor.Register) {
 	rd.register = register
 }
 
+// Dispatch 分发具体请求
 func (rd *RequestDispatcher) Dispatch(writer http.ResponseWriter, request *http.Request) {
 	for _, h := range wire.Instance.All() {
 		// 如果直接完全匹配，说明不是 RESTFul 模式
@@ -68,8 +77,9 @@ func (rd *RequestDispatcher) Dispatch(writer http.ResponseWriter, request *http.
 	context.Current().NotFound(writer, request)
 }
 
+// doDispatch 具体的请求分发操作
 func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.ResponseWriter, request *http.Request, isRESTFul bool) {
-	md := resolver.VerifyMethod(hw, request.Method)
+	md := VerifyMethod(hw, request.Method)
 	if !md {
 		// 不支持的 http 方法
 		context.Current().UnsupportedMethod(writer, request)
@@ -77,15 +87,19 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	}
 
 	// 处理器
-	handler := reflect.Value(hw.Handler)
+	handler := hw.Handler
 
 	// 参数处理器
 	argumentResolver := util.GetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()).(resolver.ArgumentResolver)
 	// 结果处理器
 	resultResolver := util.GetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()).(resolver.ResultResolver)
 
-	// 获取到处理后的参数
-	args := argumentResolver.Resolve(hw, writer, request, isRESTFul)
+	// 先处理一遍参数
+	args := rd.resolve(hw, writer, request, isRESTFul)
+
+	// 再调用参数处理器处理
+	argumentResolver.Resolve(args, writer, request, handler)
+
 	gog.TraceF("Params of request path [{}] are {}, matched router [{}] of params {}", request.URL.Path, args, hw.Path, hw.Params)
 
 	// 处理前，执行拦截器 PreHandle() 方法
@@ -110,10 +124,9 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 				if matched, err := regexp.MatchString("^"+pattern+"$", request.URL.Path); matched && err == nil {
 					// 前缀匹配成功，执行拦截器
 					return false, interceptor.PreHandle(writer, request, handler)
-				} else {
-					// 匹配不成功的直接跳过
-					return true, true
 				}
+				// 匹配不成功的直接跳过
+				return true, true
 			} else if path == request.URL.Path {
 				// 严格匹配，只有路径完全相同才走过滤器
 				return false, interceptor.PreHandle(writer, request, handler)
@@ -163,4 +176,216 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 
 	// 拦截器通过后，响应处理结果
 	resultResolver.Response(res, writer)
+}
+
+// resolve 初步处理参数
+// TODO 待完善功能：不可空参数处理 & 文件上传 & 错误码处理
+func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseWriter, request *http.Request, isRESTFul bool) []reflect.Value {
+	path := request.URL.Path
+	handler := reflect.Value(hw.Handler)
+	// 每个方法最多 2 个参数可以是 http.ResponseWriter 和 *http.Request
+	// 其他均是自定义参数，需要注册
+	x := handler.Type()
+	paramCount := x.NumIn()
+	pc := handler.Pointer()
+	handlerName := util.ReplaceAll(runtime.FuncForPC(pc).Name(), "-fm", "(...)")
+
+	var pathVariables []string
+	if isRESTFul {
+		pathVariables = util.GetRESTFulParams(hw.Path)
+	}
+	args := make([]reflect.Value, 0)
+
+	hasParams := hw.Params != nil && len(hw.Params) > 0
+
+	pos := 0
+	for i := 0; i < paramCount; i++ {
+		tp := x.In(i)
+		if tp.Kind() == reflect.Ptr {
+			tp = tp.Elem()
+		}
+		pkg := tp.PkgPath()
+		kind := tp.Kind()
+		name := tp.Name()
+
+		if pkg == "net/http" {
+			// 可能是 http.ResponseWriter 或者 *http.Request
+			if kind == reflect.Interface && name == "ResponseWriter" {
+				// http.ResponseWriter
+				args = append(args, reflect.ValueOf(writer))
+				continue
+			}
+
+			if kind == reflect.Struct && name == "Request" {
+				// http.Request
+				args = append(args, reflect.ValueOf(request))
+				continue
+			}
+		}
+
+		if hasParams {
+			param := hw.Params[pos]
+			kd := param.Type.Kind()
+			pos++
+
+			if kind != kd {
+				// 参数类型不匹配，可能是注册时参数顺序与实际形参不一致
+				continue
+			}
+
+			// RESTful 格式传参
+			if param.InPath && pathVariables != nil {
+				index := util.GetPathVariableIndex(param.Name, hw.Path)
+				if index > -1 {
+					// 找到啦~
+					// 找到位置后，去 url path 的对应位置上获取参数值即可
+					temp := GetPathVariableValue(index, path)
+					// 添加到参数列表
+					args = append(args, StringToValue(kd, temp))
+				} else {
+					gog.ErrorF("The path [%v] has not contains path variable [%v].", hw.Path, param.Name)
+				}
+				continue
+			}
+
+			// 从请求头获取
+			if param.InHeader {
+				temp := request.Header.Get(param.Name)
+				if temp == "" && param.Required {
+					gog.ErrorF("Maybe the param [%v] in request header defected.", param.Name)
+					continue
+				}
+				// 添加到参数列表
+				args = append(args, StringToValue(kd, temp))
+				continue
+			}
+
+			// 有 requestBody 参数
+			// 仅支持 POST 方法
+			if param.IsBody {
+				if request.Method != http.MethodPost && request.Method != http.MethodPut {
+					gog.ErrorF("RequestBody only support 'POST' and 'PUT' method, but now is [%v].", request.Method)
+					continue
+				}
+
+				if !VerifyMethod(hw, http.MethodPost) && !VerifyMethod(hw, http.MethodPut) {
+					gog.ErrorF("Maybe the handler [%v] should be register as 'POST' or 'PUT' method, now is %v.", handlerName, hw.Methods)
+					continue
+				}
+
+				// 获取到 requestBody
+				bs := util.RecycleRequestBody(request)
+				if bs != nil {
+					var arg interface{}
+					switch kind {
+					case reflect.Map:
+						arg = reflect.MakeMap(tp).Interface()
+						break
+					case reflect.Slice:
+						arg = reflect.MakeSlice(tp, 0, 0).Interface()
+						break
+					case reflect.Struct:
+						arg = reflect.New(tp).Interface()
+						break
+					}
+					err := json.Unmarshal(bs, &arg)
+					if err != nil {
+						gog.Error(err)
+						continue
+					}
+					// 添加到参数列表
+					args = append(args, reflect.ValueOf(arg))
+				}
+				continue
+			}
+
+			// 普通参数
+			// 先从 URL 中获取
+			temp := request.URL.Query().Get(param.Name)
+			if temp == "" {
+				// 从 form 中获取
+				temp = request.FormValue(param.Name)
+				if temp == "" && request.Method == http.MethodPost {
+					temp = request.PostFormValue(param.Name)
+				}
+			}
+			// 添加到参数列表
+			args = append(args, StringToValue(kd, temp))
+		}
+	}
+
+	return args
+}
+
+// GetPathVariableValue 用 参数位置 从 实际 path 中获取到参数值
+func GetPathVariableValue(index int, path string) string {
+	nodes := strings.Split(path, "/")
+	if nodes != nil && index < len(nodes) {
+		return nodes[index]
+	}
+	return ""
+}
+
+// StringToValue 将字符串转换为其他类型
+func StringToValue(kind reflect.Kind, value string) reflect.Value {
+	var arg reflect.Value
+	switch kind {
+	case reflect.String:
+		arg = reflect.ValueOf(value)
+		break
+	case reflect.Int:
+		it, err := strconv.Atoi(value)
+		if err == nil {
+			arg = reflect.ValueOf(it)
+		} else {
+			arg = reflect.ValueOf(0)
+		}
+		break
+	case reflect.Int8:
+		arg = reflect.ValueOf(int8(util.StringToInt(value, 8)))
+		break
+	case reflect.Int16:
+		arg = reflect.ValueOf(int16(util.StringToInt(value, 16)))
+		break
+	case reflect.Int32:
+		arg = reflect.ValueOf(int32(util.StringToInt(value, 32)))
+		break
+	case reflect.Int64:
+		arg = reflect.ValueOf(util.StringToInt(value, 64))
+		break
+	case reflect.Uint:
+		arg = reflect.ValueOf(uint(util.StringToUInt(value, 0)))
+		break
+	case reflect.Uint8:
+		arg = reflect.ValueOf(uint8(util.StringToUInt(value, 8)))
+		break
+	case reflect.Uint16:
+		arg = reflect.ValueOf(uint16(util.StringToUInt(value, 16)))
+		break
+	case reflect.Uint32:
+		arg = reflect.ValueOf(uint32(util.StringToUInt(value, 32)))
+		break
+	case reflect.Uint64:
+		arg = reflect.ValueOf(util.StringToUInt(value, 64))
+		break
+	case reflect.Bool:
+		bl, err := strconv.ParseBool(value)
+		if err == nil {
+			arg = reflect.ValueOf(bl)
+		} else {
+			arg = reflect.ValueOf(false)
+		}
+		break
+	}
+	return arg
+}
+
+// VerifyMethod 校验请求方法
+func VerifyMethod(hw *wire.HandlerWire, method string) bool {
+	for _, md := range hw.Methods {
+		if string(md) == method {
+			return true
+		}
+	}
+	return false
 }

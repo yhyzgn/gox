@@ -16,7 +16,8 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-26 12:43
 // version: 1.0.0
-// desc   : 
+// desc   : 过滤器接口
+//			所有请求将先到达 过滤器
 
 package filter
 
@@ -24,6 +25,8 @@ import (
 	"net/http"
 )
 
+// Filter 过滤器
 type Filter interface {
-	DoFilter(writer http.ResponseWriter, request *http.Request, chain *FilterChain)
+	// DoFilter 执行过滤器操作
+	DoFilter(writer http.ResponseWriter, request *http.Request, chain *Chain)
 }

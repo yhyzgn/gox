@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-27 14:29
 // version: 1.0.0
-// desc   : 
+// desc   : 一个路由关系映射器
 
 package core
 
@@ -31,14 +31,16 @@ import (
 	"strings"
 )
 
+// Ship 路由关系映射器
 type Ship struct {
-	mapper      *Mapper
-	path        string
-	handlerFunc common.HandlerFunc
-	methods     []common.Method
-	params      []*common.Param
+	mapper      *Mapper            // 所属的 处理器映射器
+	path        string             // 配置的 path 路径
+	handlerFunc common.HandlerFunc // 配置的 处理器
+	methods     []common.Method    // http 请求方法列表
+	params      []*common.Param    // 配置的参数列表
 }
 
+// 完成一条 处理器关系 映射
 func (sp *Ship) Mapping() *Mapper {
 	if sp.methods == nil {
 		sp.methods = make([]common.Method, 0)
@@ -95,12 +97,14 @@ func (sp *Ship) Mapping() *Mapper {
 		pos++
 	}
 
+	// 注册 每一条映射关系
 	wire.Instance.Mapping(sp.resolvePath(), common.Handler(v), sp.methods, sp.params)
 	return sp.mapper
 }
 
+// resolvePath 用 / 处理 path，构建标准 url path
 func (sp *Ship) resolvePath() string {
-	pref := sp.mapper.route.path
+	pref := sp.mapper.path
 	path := sp.path
 
 	if !strings.HasPrefix(pref, "/") {
@@ -114,11 +118,13 @@ func (sp *Ship) resolvePath() string {
 	return util.ReplaceAll(fmt.Sprintf("%s%s", pref, path), "//", "/")
 }
 
+// HandlerFunc 配置处理器
 func (sp *Ship) HandlerFunc(handlerFunc common.HandlerFunc) *Ship {
 	sp.handlerFunc = handlerFunc
 	return sp
 }
 
+// Method 配置 http 请求方法
 func (sp *Ship) Method(methods ...common.Method) *Ship {
 	if methods != nil {
 		sp.methods = append(sp.methods, methods...)
@@ -126,25 +132,31 @@ func (sp *Ship) Method(methods ...common.Method) *Ship {
 	return sp
 }
 
+// Header 注册请求头参数
 func (sp *Ship) Header(name string) *Ship {
 	sp.params = append(sp.params, common.NewParam(name, true, true, false, false))
 	return sp
 }
+
+// Param 注册普通参数，不可空
 func (sp *Ship) Param(name string) *Ship {
 	sp.params = append(sp.params, common.NewParam(name, true, false, false, false))
 	return sp
 }
 
+// ParamNil 注册普通参数，可空
 func (sp *Ship) ParamNil(name string) *Ship {
 	sp.params = append(sp.params, common.NewParam(name, false, false, false, false))
 	return sp
 }
 
+// PathVariable 注册RESTFul格式参数
 func (sp *Ship) PathVariable(name string) *Ship {
 	sp.params = append(sp.params, common.NewParam(name, true, false, true, false))
 	return sp
 }
 
+// Body 注册 RequestBody 参数
 func (sp *Ship) Body(name string) *Ship {
 	sp.params = append(sp.params, common.NewParam(name, true, false, false, true))
 	return sp

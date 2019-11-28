@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-27 9:41
 // version: 1.0.0
-// desc   : 
+// desc   : GoX 上下文
 
 package context
 
@@ -27,13 +27,14 @@ import (
 	"sync"
 )
 
+// GoXContext GoX 上下文
 type GoXContext struct {
-	reader            *config.Reader
-	wares             map[string]interface{}
-	onceMap           map[string]bool
-	errorHandlers     map[int]http.HandlerFunc
-	NotFound          http.HandlerFunc
-	UnsupportedMethod http.HandlerFunc
+	reader            *config.Reader           // 资源读取器
+	wares             map[string]interface{}   // 一些组件
+	onceMap           map[string]bool          // 一次性组件
+	errorHandlers     map[int]http.HandlerFunc // 错误处理器，每个错误码对应一个处理器
+	NotFound          http.HandlerFunc         // 404错误处理器
+	UnsupportedMethod http.HandlerFunc         // 方法不支持错误处理器
 }
 
 var (
@@ -56,14 +57,17 @@ func init() {
 	})
 }
 
+// Current 获取当前上下文对象
 func Current() *GoXContext {
 	return current
 }
 
+// Read 读取资源文件
 func (c *GoXContext) Read(filename string) (data []byte, errs error) {
 	return c.reader.Read(filename)
 }
 
+// SetWare 设置组件
 func (c *GoXContext) SetWare(name string, ware interface{}) WareContext {
 	if !c.onceMap[name] {
 		c.wares[name] = ware
@@ -71,6 +75,7 @@ func (c *GoXContext) SetWare(name string, ware interface{}) WareContext {
 	return c
 }
 
+// SetWareOnce 设置一次性组件，修改无效
 func (c *GoXContext) SetWareOnce(name string, ware interface{}) WareContext {
 	if c.wares[name] == nil && !c.onceMap[name] {
 		c.wares[name] = ware
@@ -79,15 +84,18 @@ func (c *GoXContext) SetWareOnce(name string, ware interface{}) WareContext {
 	return c
 }
 
+// GetWare 获取组件
 func (c *GoXContext) GetWare(name string) interface{} {
 	return c.wares[name]
 }
 
+// AddErrorHandler 添加错误码处理器
 func (c *GoXContext) AddErrorHandler(statusCode int, handler http.HandlerFunc) *GoXContext {
 	c.errorHandlers[statusCode] = handler
 	return c
 }
 
+// GetErrorHandler 获取错误码处理器
 func (c *GoXContext) GetErrorHandler(statusCode int) http.HandlerFunc {
 	return c.errorHandlers[statusCode]
 }

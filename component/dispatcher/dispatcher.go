@@ -16,7 +16,8 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-26 15:32
 // version: 1.0.0
-// desc   : 
+// desc   : 请求分发器
+//			所有过滤器执行完后，请求将到达 分发器
 
 package dispatcher
 
@@ -24,7 +25,8 @@ import (
 	"net/http"
 )
 
-type Dispatcher interface{
-
+// Dispatcher 请求分发器
+type Dispatcher interface {
+	// Dispatch 分发请求
 	Dispatch(writer http.ResponseWriter, request *http.Request)
 }

@@ -16,10 +16,16 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-24 3:52 上午
 // version: 1.0.0
-// desc   : 
+// desc   : 控制器接口
+//
+// 			所有控制器必须实现该接口，并在 Mapping() 方法中完成 处理器 注册
 
 package core
 
+// Controller 控制器接口
 type Controller interface {
+	// Mapping 在该方法中完成当前控制器中的所有处理器注册
+	//
+	// mapper.Request("/rest/{id}").HandlerFunc(h.Rest).PathVariable("id").Mapping()
 	Mapping(*Mapper)
 }

@@ -33,7 +33,7 @@ func NewLogFilter() *LogFilter {
 	return new(LogFilter)
 }
 
-func (lg *LogFilter) DoFilter(writer http.ResponseWriter, request *http.Request, chain *filter.FilterChain) {
+func (lg *LogFilter) DoFilter(writer http.ResponseWriter, request *http.Request, chain *filter.Chain) {
 	gog.Info("This is log filter. ", request.URL.Path)
 
 	// 往下传递

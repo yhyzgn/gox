@@ -33,7 +33,7 @@ func NewTestFilter() *TestFilter {
 	return new(TestFilter)
 }
 
-func (tf *TestFilter) DoFilter(writer http.ResponseWriter, request *http.Request, chain *filter.FilterChain) {
+func (tf *TestFilter) DoFilter(writer http.ResponseWriter, request *http.Request, chain *filter.Chain) {
 	gog.Trace(request.URL.Path)
 
 	// 往下传递

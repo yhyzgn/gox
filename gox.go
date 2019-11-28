@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-24 12:47 上午
 // version: 1.0.0
-// desc   : 
+// desc   : MVC 入口
 
 package gox
 
@@ -35,6 +35,7 @@ import (
 	"sync"
 )
 
+// GoX MVC 服务处理器
 type GoX struct {
 	mu sync.RWMutex
 }
@@ -42,13 +43,14 @@ type GoX struct {
 // 做一些初始化配置
 func init() {
 	context.Current().
-		SetWareOnce(common.FilterChainName, filter.NewFilterChain()). // 过滤器链
+		SetWareOnce(common.FilterChainName, filter.NewChain()). // 过滤器链
 		SetWareOnce(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()). // 请求分发器
-		SetWareOnce(common.InterceptorRegisterName, interceptor.NewInterceptorRegister()). // 拦截器
+		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister()). // 拦截器
 		SetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()). // 参数处理器
 		SetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()) // 结果处理器
 }
 
+// ServeHTTP 接收处理请求
 func (r *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// 每个请求 过滤器 开始标记
 	request = util.SetRequestAttribute(request, common.RequestFilterIndexName, 0)
@@ -64,11 +66,11 @@ func (r *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// -----------------------------------------------------------------------
 
 	// 过滤器链
-	filterChain := util.GetWare(common.FilterChainName, filter.NewFilterChain()).(*filter.FilterChain)
+	filterChain := util.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain)
 	// 分发器
 	dispatch := util.GetWare(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()).(*dispatcher.RequestDispatcher)
 	// 拦截器
-	interceptorRegister := util.GetWare(common.InterceptorRegisterName, interceptor.NewInterceptorRegister()).(*interceptor.InterceptorRegister)
+	interceptorRegister := util.GetWare(common.InterceptorRegisterName, interceptor.NewRegister()).(*interceptor.Register)
 
 	// 将拦截器设置到分发器
 	dispatch.SetInterceptorRegister(interceptorRegister)
@@ -79,31 +81,36 @@ func (r *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	filterChain.DoFilter(writer, request)
 }
 
+// NewGoX 创建新服务
 func NewGoX() *GoX {
 	return new(GoX)
 }
 
+// Configure 配置 Web
 func (r *GoX) Configure(configure configure.WebConfigure) *GoX {
 	r.config(configure)
 	return r
 }
 
+// NotFoundHandler 配置 404 处理器
 func (r *GoX) NotFoundHandler(handler http.HandlerFunc) *GoX {
 	context.Current().NotFound = handler
 	return r
 }
 
+// UnsupportedMethodHandler 配置 方法不支持 处理器
 func (r *GoX) UnsupportedMethodHandler(handler http.HandlerFunc) *GoX {
 	context.Current().UnsupportedMethod = handler
 	return r
 }
 
+// Mapping 添加 控制器 映射
 func (r *GoX) Mapping(path string, ctrl core.Controller) *GoX {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	route := core.NewRoute()
-	route.Path(path).Controller(ctrl)
-	mapper := core.NewMapper(route)
+	// 创建一个 处理器映射器对象
+	mapper := core.NewMapper(path, ctrl)
+	// 执行每个控制器的 Mapping() 方法，完成 处理器的注册
 	ctrl.Mapping(mapper)
 
 	// 注册到 IOC
@@ -111,12 +118,13 @@ func (r *GoX) Mapping(path string, ctrl core.Controller) *GoX {
 	return r
 }
 
+// config 触发配置装载
 func (r *GoX) config(configure configure.WebConfigure) {
 	if configure != nil {
 		// 注册过滤器
-		configure.ConfigFilter(util.GetWare(common.FilterChainName, filter.NewFilterChain()).(*filter.FilterChain))
+		configure.ConfigFilter(util.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain))
 
 		// 注册拦截器
-		configure.ConfigInterceptor(util.GetWare(common.InterceptorRegisterName, interceptor.NewInterceptorRegister()).(*interceptor.InterceptorRegister))
+		configure.ConfigInterceptor(util.GetWare(common.InterceptorRegisterName, interceptor.NewRegister()).(*interceptor.Register))
 	}
 }

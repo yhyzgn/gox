@@ -34,12 +34,12 @@ func NewConfig() *Config {
 	return new(Config)
 }
 
-func (c *Config) ConfigFilter(chain *filter.FilterChain) {
+func (c *Config) ConfigFilter(chain *filter.Chain) {
 	chain.
 		AddFilter("/", testFilter.NewTestFilter()).
 		AddFilter("/api/*", testFilter.NewLogFilter())
 }
 
-func (c *Config) ConfigInterceptor(register *interceptor.InterceptorRegister) {
+func (c *Config) ConfigInterceptor(register *interceptor.Register) {
 	register.AddInterceptor("/", testInterceptor.NewTestInterceptor())
 }

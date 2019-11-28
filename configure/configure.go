@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-26 11:51
 // version: 1.0.0
-// desc   : 
+// desc   : Web配置接口
 
 package configure
 
@@ -25,8 +25,11 @@ import (
 	"github.com/yhyzgn/gox/component/interceptor"
 )
 
+// WebConfigure Web配置接口
 type WebConfigure interface {
-	ConfigFilter(chain *filter.FilterChain)
+	// ConfigFilter 注册过滤器
+	ConfigFilter(chain *filter.Chain)
 
-	ConfigInterceptor(register *interceptor.InterceptorRegister)
+	// ConfigInterceptor 注册拦截器
+	ConfigInterceptor(register *interceptor.Register)
 }

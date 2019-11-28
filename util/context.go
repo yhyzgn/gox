@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-26 14:46
 // version: 1.0.0
-// desc   : 
+// desc   : 上下文工具
 
 package util
 
@@ -24,6 +24,7 @@ import (
 	"github.com/yhyzgn/gox/context"
 )
 
+// GetWare 从当前上下文中获取组件
 func GetWare(name string, defValue interface{}) interface{} {
 	instance := context.Current().GetWare(name)
 	if instance == nil {

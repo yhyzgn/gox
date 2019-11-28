@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-24 11:17 下午
 // version: 1.0.0
-// desc   : 
+// desc   : 类型转换工具
 
 package util
 
@@ -24,6 +24,7 @@ import (
 	"strconv"
 )
 
+// StringToInt String 转为不同长度 int
 func StringToInt(value string, size int) int64 {
 	it, err := strconv.ParseInt(value, 10, size)
 	if err == nil {
@@ -32,6 +33,7 @@ func StringToInt(value string, size int) int64 {
 	return 0
 }
 
+// StringToUInt String 转为不同长度的 uint
 func StringToUInt(value string, size int) uint64 {
 	it, err := strconv.ParseUint(value, 10, size)
 	if err == nil {

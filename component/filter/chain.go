@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-26 14:47
 // version: 1.0.0
-// desc   : 
+// desc   : 过滤器链-责任链模式
 
 package filter
 
@@ -29,31 +29,43 @@ import (
 	"regexp"
 )
 
-type FilterChain struct {
+// Chain 过滤器链
+type Chain struct {
 	filters    []Filter
 	pathMap    map[int]string
 	dispatcher dispatcher.Dispatcher
 }
 
-func NewFilterChain() *FilterChain {
-	return &FilterChain{
+// NewChain 一个新链
+func NewChain() *Chain {
+	return &Chain{
 		filters: make([]Filter, 0),
 		pathMap: make(map[int]string),
 	}
 }
 
-func (fc *FilterChain) SetDispatcher(dispatcher dispatcher.Dispatcher) {
+// SetDispatcher 设置请求分发器
+// 当所有过滤器执行完后，需要执行该分发器
+func (fc *Chain) SetDispatcher(dispatcher dispatcher.Dispatcher) {
 	fc.dispatcher = dispatcher
 }
 
-func (fc *FilterChain) AddFilter(path string, filter Filter) *FilterChain {
+// AddFilter 向链中添加过滤器
+// 添加顺序 即 执行顺序
+// path 匹配方式：
+// 				/		->		所有请求
+//				/xx		->		严格匹配
+//				/xx/*	->		前缀匹配
+func (fc *Chain) AddFilter(path string, filter Filter) *Chain {
 	fc.filters = append(fc.filters, filter)
 	fc.pathMap[len(fc.filters)-1] = path
 	gog.InfoF("The Filter [%v] registered.", path)
 	return fc
 }
 
-func (fc *FilterChain) DoFilter(writer http.ResponseWriter, request *http.Request) {
+// DoFilter 逐个执行过滤器
+// 执行顺序 为 添加顺序
+func (fc *Chain) DoFilter(writer http.ResponseWriter, request *http.Request) {
 	// 获取到当前请求中的过滤器 索引
 	index := util.GetRequestAttribute(request, common.RequestFilterIndexName).(int)
 	// 实时更新 索引

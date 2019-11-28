@@ -23,6 +23,8 @@ package util
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"github.com/yhyzgn/gox/common"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -41,11 +43,13 @@ func RecycleRequestBody(req *http.Request) []byte {
 	return nil
 }
 
-func SetRequestAttribute(request *http.Request, key string, value interface{}) *http.Request {
+// SetRequestAttribute 给 request 添加属性
+func SetRequestAttribute(request *http.Request, key common.AttributeKey, value interface{}) *http.Request {
 	return request.WithContext(context.WithValue(request.Context(), key, value))
 }
 
-func GetRequestAttribute(request *http.Request, key string) interface{} {
+// GetRequestAttribute 从 request 获取属性
+func GetRequestAttribute(request *http.Request, key common.AttributeKey) interface{} {
 	return request.Context().Value(key)
 }
 
@@ -56,7 +60,7 @@ func SetRequestHeader(req *http.Request, key, value string) {
 	req.Header[key] = []string{value}
 }
 
-// SetRequestHeader 设置响应头
+// SetResponseHeader 设置响应头
 //
 // 指定大小写
 func SetResponseHeader(res *http.Response, key, value string) {
@@ -89,4 +93,28 @@ func AddURLQuery(url, key, value string) string {
 	sb.WriteString("=")
 	sb.WriteString(value)
 	return sb.String()
+}
+
+// ResponseJSON 响应 json 数据
+func ResponseJSON(writer http.ResponseWriter, value interface{}) {
+	SetResponseWriterHeader(writer, "Content-Type", "application/json;charset=utf-8")
+	if value != nil {
+		bs, err := json.Marshal(value)
+		if err == nil {
+			err = ResponseBytes(writer, bs)
+			if err == nil {
+				return
+			}
+		}
+		_ = ResponseBytes(writer, []byte(err.Error()))
+		return
+	}
+	_ = ResponseBytes(writer, []byte("nil response"))
+}
+
+// ResponseBytes http 响应
+func ResponseBytes(writer http.ResponseWriter, bytes []byte) (err error) {
+	writer.WriteHeader(http.StatusOK)
+	_, err = writer.Write(bytes)
+	return
 }

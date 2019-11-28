@@ -16,17 +16,24 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-26 14:37
 // version: 1.0.0
-// desc   : 
+// desc   : 拦截器接口
+//			分发器执行完后，请求将到达 拦截器
+//			拦截器执行完后，请求将到达 处理器
 
 package interceptor
 
 import (
+	"github.com/yhyzgn/gox/common"
 	"net/http"
 	"reflect"
 )
 
+// Interceptor 拦截器
 type Interceptor interface {
-	PreHandle(writer http.ResponseWriter, request *http.Request, handler reflect.Value) bool
+	// PreHandle 请求处理前
+	// 返回 true 将继续往下执行，返回 false 则截断请求
+	PreHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler) bool
 
-	AfterHandle(writer http.ResponseWriter, request *http.Request, handler, result reflect.Value, err error)
+	// 请求处理后
+	AfterHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler, result reflect.Value, err error)
 }

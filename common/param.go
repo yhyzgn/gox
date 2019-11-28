@@ -16,12 +16,13 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-24 4:15 下午
 // version: 1.0.0
-// desc   : 
+// desc   : 参数信息定义
 
 package common
 
 import "reflect"
 
+// Param 参数信息定义
 type Param struct {
 	Name     string
 	Required bool
@@ -31,6 +32,7 @@ type Param struct {
 	Type     reflect.Type
 }
 
+// NewParam 一个新的参数
 func NewParam(name string, required, inHeader, inPath, isBody bool) *Param {
 	return &Param{
 		Name:     name,

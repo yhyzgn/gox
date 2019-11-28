@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-24 2:11 上午
 // version: 1.0.0
-// desc   : 
+// desc   : 处理器映射缓存
 
 package wire
 
@@ -31,20 +31,23 @@ import (
 	"sync"
 )
 
+// HandlerWire 处理器映射缓存
 type HandlerWire struct {
-	Path    string
-	Handler common.Handler
-	Methods []common.Method
-	Params  []*common.Param
+	Path    string          // 配置的 path
+	Handler common.Handler  // 处理器
+	Methods []common.Method // 请求方法
+	Params  []*common.Param // 参数列表
 }
 
+// Wires 处理器映射缓存
 type Wires struct {
-	wires  map[string]*HandlerWire
-	sorted []*HandlerWire
+	wires  map[string]*HandlerWire // path 处理器映射
+	sorted []*HandlerWire          // 从长到短 排序后的映射
 }
 
 var (
-	once     sync.Once
+	once sync.Once
+	// Instance 一个全局实例
 	Instance *Wires
 )
 
@@ -57,6 +60,7 @@ func init() {
 	})
 }
 
+// Mapping 注册映射关系
 func (w *Wires) Mapping(path string, handler common.Handler, methods []common.Method, params []*common.Param) {
 	wire := &HandlerWire{
 		Path:    path,
@@ -73,14 +77,17 @@ func (w *Wires) Mapping(path string, handler common.Handler, methods []common.Me
 	gog.InfoF("Mapped [%v-->\t%v] with http method %v", util.FillSuffix(path, " ", 40), name, methods)
 }
 
+// Get 获取一条映射关系
 func (w *Wires) Get(path string) *HandlerWire {
 	return w.wires[path]
 }
 
+// All 获取所有映射关系
 func (w *Wires) All() []*HandlerWire {
 	return w.sorted
 }
 
+// appendSorted 按 path 从长到短 插入数组
 func appendSorted(wires []*HandlerWire, wire *HandlerWire) []*HandlerWire {
 	length := len(wires)
 	index := sort.Search(length, func(i int) bool {

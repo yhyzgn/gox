@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-24 7:14 下午
 // version: 1.0.0
-// desc   : 
+// desc   : 字符串工具
 
 package util
 
@@ -25,20 +25,23 @@ import (
 	"strings"
 )
 
+// ReplaceAll 替换
 func ReplaceAll(str, old, new string) string {
 	return string(bytes.ReplaceAll([]byte(str), []byte(old), []byte(new)))
 }
 
+// Replace 替换
 func Replace(str, old, new string, n int) string {
 	return string(bytes.Replace([]byte(str), []byte(old), []byte(new), n))
 }
 
+// FillPrefix 前缀填充补齐
 func FillPrefix(src, ch string, ln int) string {
 	if len(src) >= ln {
 		return src
 	}
 	delta := ln - len(src)
-	
+
 	var sb strings.Builder
 	for i := 0; i < delta; i++ {
 		sb.WriteString(ch)
@@ -47,6 +50,7 @@ func FillPrefix(src, ch string, ln int) string {
 	return sb.String()
 }
 
+// FillSuffix 后缀填充补齐
 func FillSuffix(src, ch string, ln int) string {
 	if len(src) >= ln {
 		return src

@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-24 12:47 上午
 // version: 1.0.0
-// desc   : 
+// desc   : 定义一些东西
 
 package common
 
@@ -24,17 +24,35 @@ import (
 	"reflect"
 )
 
+// 定义一些常量
 const (
-	FilterChainName         = "gox-filter-chain"
-	InterceptorRegisterName = "gox-interceptor-register"
-	RequestDispatcherName   = "gox-request-dispatcher"
-	ArgumentResolverName    = "gox-argument-resolver"
-	ResultResolverName      = "gox-result-resolver"
-	RequestFilterIndexName  = "gox-filter-index"
+	FilterChainName         = "gox-filter-chain"         // 过滤器注册链名字
+	InterceptorRegisterName = "gox-interceptor-register" // 拦截器注册器名字
+	RequestDispatcherName   = "gox-request-dispatcher"   // 请求分发器名字
+	ArgumentResolverName    = "gox-argument-resolver"    // 参数处理器名字
+	ResultResolverName      = "gox-result-resolver"      // 结果处理器名字
+	RequestFilterIndexName  = "gox-filter-index"         // 每个请求过滤器索引名字
 )
 
+// AttributeKey request 属性的键类型
+type AttributeKey string
+
+// Method http 请求方法
 type Method string
 
+// HandlerFunc 控制器中的方法
+// 只能是 Func 类型
 type HandlerFunc interface{}
 
+// Handler 请求处理器，指向 HandlerFunc
 type Handler reflect.Value
+
+// Call 处理器实际处理操作，调用具体方法，并返回值
+func (h Handler) Call(args []reflect.Value) []reflect.Value {
+	return h.Get().Call(args)
+}
+
+// Get 处理器实际类型
+func (h Handler) Get() reflect.Value {
+	return reflect.Value(h)
+}

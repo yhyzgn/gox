@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-25 17:28
 // version: 1.0.0
-// desc   : 
+// desc   : 正则工具
 
 package util
 
@@ -26,7 +26,9 @@ import (
 )
 
 const (
-	PatternRESTFul     = "/{([\\w-_]+?)}"
+	// PatternRESTFul 匹配 RESTFul 格式的 pattern
+	PatternRESTFul = "/{([\\w-_]+?)}"
+	// PatternRESTFulReal 将配置的 RESTFul 格式 path 转换成 统配 path 的正则
 	PatternRESTFulReal = "/[\\w-_]+?"
 )
 
@@ -34,10 +36,12 @@ var (
 	regRESTFul, _ = regexp.Compile(PatternRESTFul)
 )
 
+// IsRESTFul path 是否是 RESTFul 格式
 func IsRESTFul(path string) bool {
 	return regRESTFul.MatchString(path)
 }
 
+// GetRESTFulParams 获取 RESTFul 路径中的 所有参数
 func GetRESTFulParams(path string) []string {
 	matches := regRESTFul.FindAllStringSubmatch(path, -1)
 	// str : /api/{name}/test/{age}/{user-id}/{auth_code}
@@ -51,11 +55,12 @@ func GetRESTFulParams(path string) []string {
 	return result
 }
 
+// ConvertRESTFulPathToPattern 将配置的 RESTFul 格式 path 转换成 统配 path 的正则
 func ConvertRESTFulPathToPattern(path string) string {
 	return regRESTFul.ReplaceAllString(path, PatternRESTFulReal)
 }
 
-// 从注册的 path 中 获取 参数位置
+// GetPathVariableIndex 从注册的 path 中 获取 参数位置
 func GetPathVariableIndex(name string, path string) int {
 	nodes := strings.Split(path, "/")
 	if nodes != nil {
