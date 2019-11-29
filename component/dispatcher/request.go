@@ -96,7 +96,12 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	resultResolver := util.GetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()).(resolver.ResultResolver)
 
 	// 先处理一遍参数
-	args := rd.resolve(hw, writer, request, isRESTFul)
+	args, ex := rd.resolve(hw, writer, request, isRESTFul)
+	if ex != nil {
+		gog.Error(ex.Error)
+		ex.Response(writer)
+		return
+	}
 
 	// 再调用参数处理器处理
 	argumentResolver.Resolve(args, writer, request, handler)
@@ -181,7 +186,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 
 // resolve 初步处理参数
 // TODO 待完善功能：参数VO处理 & 文件上传
-func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseWriter, request *http.Request, isRESTFul bool) []reflect.Value {
+func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseWriter, request *http.Request, isRESTFul bool) ([]reflect.Value, *common.HTTPError) {
 	path := request.URL.Path
 	handler := reflect.Value(hw.Handler)
 	// 每个方法最多 2 个参数可以是 http.ResponseWriter 和 *http.Request
@@ -243,21 +248,16 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 					temp := GetPathVariableValue(index, path)
 					// 添加到参数列表
 					args = append(args, StringToValue(kd, temp))
-				} else {
-					gog.ErrorF("The path [%v] does not contains path variable [%v].", hw.Path, param.Name)
-					http.Error(writer, fmt.Sprintf("The path [%v] does not contains path variable [%v].", hw.Path, param.Name), http.StatusBadRequest)
-					return nil
+					continue
 				}
-				continue
+				return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The path [%v] does not contains path variable [%v].", hw.Path, param.Name))
 			}
 
 			// 从请求头获取
 			if param.InHeader {
 				temp := request.Header.Get(param.Name)
 				if temp == "" && param.Required {
-					gog.ErrorF("The param [%v] is nested, but received value is empty.", param.Name)
-					http.Error(writer, fmt.Sprintf("The param [%v] is nested, but received value is empty.", param.Name), http.StatusBadRequest)
-					return nil
+					return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is nested, but received value is empty.", param.Name))
 				}
 				// 添加到参数列表
 				args = append(args, StringToValue(kd, temp))
@@ -268,15 +268,11 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 			// 仅支持 POST 方法
 			if param.IsBody {
 				if request.Method != http.MethodPost && request.Method != http.MethodPut {
-					gog.ErrorF("RequestBody only support 'POST' and 'PUT' method, but now is [%v].", request.Method)
-					http.Error(writer, fmt.Sprintf("RequestBody only support 'POST' and 'PUT' method, but now is [%v].", request.Method), http.StatusMethodNotAllowed)
-					return nil
+					return nil, common.NewHTTPError(http.StatusMethodNotAllowed, fmt.Sprintf("RequestBody only support 'POST' and 'PUT' method, but now is [%v].", request.Method))
 				}
 
 				if !VerifyMethod(hw, http.MethodPost) && !VerifyMethod(hw, http.MethodPut) {
-					gog.ErrorF("Maybe the handler [%v] should be register as 'POST' or 'PUT' method, now is %v.", handlerName, hw.Methods)
-					http.Error(writer, fmt.Sprintf("RequestBody only support 'POST' and 'PUT' method, but now is [%v].", request.Method), http.StatusMethodNotAllowed)
-					return nil
+					return nil, common.NewHTTPError(http.StatusMethodNotAllowed, fmt.Sprintf("Maybe the handler [%v] should be register as 'POST' or 'PUT' method, now is %v.", handlerName, hw.Methods))
 				}
 
 				// 获取到 requestBody
@@ -318,9 +314,7 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 
 			// 如果没获取到参数但又必须，则直接报错
 			if temp == "" && param.Required {
-				gog.ErrorF("The param [%v] is nested, but received value is empty.", param.Name)
-				http.Error(writer, fmt.Sprintf("The param [%v] is nested, but received value is empty.", param.Name), http.StatusBadRequest)
-				return nil
+				return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is nested, but no value received.", param.Name))
 			}
 
 			// 添加到参数列表
@@ -328,7 +322,7 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 		}
 	}
 
-	return args
+	return args, nil
 }
 
 // GetPathVariableValue 用 参数位置 从 实际 path 中获取到参数值
