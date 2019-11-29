@@ -306,6 +306,58 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 			return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("There is no request body of request [%v], but it's nested.", hw.Path))
 		}
 
+		// ----------------------------------------------------------------------------------------------  MultipartFile ----------------------------------------------------------------------------------------------
+		// 文件上传
+		// 兼容 MultipartFile 和 *MultipartFile && []MultipartFile 和 []*MultipartFile 四种类型
+		if isMultipart, multi, isPtr := isMultipartFile(param); isMultipart {
+			files, headers, err := util.FormFiles(request, param.Name)
+			if err != nil {
+				return nil, common.NewHTTPError(http.StatusBadRequest, err.Error())
+			}
+
+			var val reflect.Value
+			if multi {
+				// 多个文件
+				if isPtr {
+					// 指针类型
+					temp := make([]*common.MultipartFile, 0)
+					for i, file := range files {
+						temp = append(temp, &common.MultipartFile{
+							Header: headers[i],
+							File:   file,
+						})
+					}
+					val = reflect.ValueOf(temp)
+				} else {
+					// 普通类型
+					temp := make([]common.MultipartFile, 0)
+					for i, file := range files {
+						temp = append(temp, common.MultipartFile{
+							Header: headers[i],
+							File:   file,
+						})
+					}
+					val = reflect.ValueOf(temp)
+				}
+			} else {
+				// 单个文件
+				mf := &common.MultipartFile{
+					Header: headers[0],
+					File:   files[0],
+				}
+				// 根据具体接收类型（对象|指针）装配参数
+				if param.IsPtr {
+					val = reflect.ValueOf(mf)
+				} else {
+					val = reflect.ValueOf(*mf)
+				}
+			}
+
+			// 添加参数到参数列表
+			args = append(args, val)
+			continue
+		}
+
 		// ----------------------------------------------------------------------------------------------       VO       -----------------------------------------------------------------------------------------------
 		// 判断参数类型是否是 VO 类
 		if param.ElemType.Kind() == reflect.Struct {
@@ -325,31 +377,6 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 			continue
 		}
 
-		// ----------------------------------------------------------------------------------------------  MultipartFile ----------------------------------------------------------------------------------------------
-		// 文件上传
-		// 兼容 MultipartFile 和 *MultipartFile 两种类型
-		if t := reflect.TypeOf(common.MultipartFile{}); param.ElemType.Name() == t.Name() || param.IsPtr && param.ElemType.Name() == t.Name() {
-			file, header, err := request.FormFile(param.Name)
-			if err != nil {
-				return nil, common.NewHTTPError(http.StatusBadRequest, err.Error())
-			}
-
-			mf := &common.MultipartFile{
-				Header: header,
-				File:   file,
-			}
-
-			// 根据具体接收类型（对象|指针）装配参数
-			var val reflect.Value
-			if param.IsPtr {
-				val = reflect.ValueOf(mf)
-			} else {
-				val = reflect.ValueOf(*mf)
-			}
-			args = append(args, val)
-			continue
-		}
-
 		// ----------------------------------------------------------------------------------------------    Normal    ----------------------------------------------------------------------------------------------
 		// 普通参数
 		// Query / Form / PostForm
@@ -362,6 +389,39 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 		args = append(args, util.StringToValue(param.RealType.Kind(), temp))
 	}
 	return args, nil
+}
+
+// 是否是文件上传
+//
+// 返回值： 是否是文件上传，是否有多个文件，是否是文件指针
+func isMultipartFile(param *common.Param) (isMultipart, multi, isPtr bool) {
+	tp := reflect.TypeOf(new(common.MultipartFile))
+
+	// (file MultipartFile) || (file *MultipartFile)
+	if param.RealType.Name() == tp.Elem().Name() || param.IsPtr && param.ElemType.Name() == tp.Elem().Name() {
+		// 接收单个文件
+		isMultipart = true
+		isPtr = param.IsPtr
+		return
+	}
+
+	// (files []MultipartFile) || (files []*MultipartFile)
+	if param.RealType.Kind() == reflect.Slice {
+		// 多个文件
+		itemType := param.RealType.Elem()
+		elemType := itemType
+		if elemType.Kind() == reflect.Ptr {
+			elemType = elemType.Elem()
+			isPtr = true
+		}
+
+		// 匹配类型
+		if elemType.Kind() == tp.Elem().Kind() {
+			isMultipart = true
+			multi = true
+		}
+	}
+	return
 }
 
 // getVOParam 自动填充 VO 参数

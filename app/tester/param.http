@@ -1,0 +1,61 @@
+# For a quick start check out our HTTP Requests collection (Tools|HTTP Client|Open HTTP Requests Collection) or
+# paste cURL into the file and request will be converted to HTTP Request format.
+#
+# Following HTTP Request Live Templates are available:
+# * 'gtrp' and 'gtr' create a GET request with or without query parameters;
+# * 'ptr' and 'ptrp' create a POST request with a simple or parameter-like body;
+# * 'mptr' and 'fptr' create a POST request to submit a form with a text or file field (multipart/form-data);
+
+# 原生的 http.ResponseWriter 和 *http.Request 参数
+GET localhost:8080/api/param/native?param=测试啦
+
+###
+
+# 原生的 http.ResponseWriter 和 *http.Request 参数，处理器无返回值，直接内部处理
+GET localhost:8080/api/param/noReturn?param=测试啦
+
+###
+
+# 必需参数，非空
+# 非空测试
+GET localhost:8080/api/param/required?name=张三&age=24
+
+###
+# 空测试
+GET localhost:8080/api/param/required?name=张三
+
+###
+
+# 可空参数
+GET localhost:8080/api/param/param?name=张三
+
+###
+
+# 请求头参数
+GET localhost:8080/api/param/header?rand=456345
+# Token: 3452345234523452352345
+token: 3452345234523452352345
+
+###
+
+# RESTful
+GET localhost:8080/api/param/rest/Tom/34/test
+
+###
+
+# RequestBody 参数
+POST localhost:8080/api/param/body
+Content-Type: application/json
+
+{"name":"航三","age":34}
+
+###
+
+# VO 参数
+POST localhost:8080/api/param/vo?id=232333
+Content-Type: application/x-www-form-urlencoded
+Token: 23145435634563463463456
+
+name=李小三&age=34
+
+###

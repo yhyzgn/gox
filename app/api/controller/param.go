@@ -22,8 +22,11 @@ package controller
 
 import (
 	"fmt"
+	"github.com/yhyzgn/gog"
+	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/core"
 	"github.com/yhyzgn/gox/util"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -35,10 +38,12 @@ func (c ParamController) Mapping(mapper *core.Mapper) {
 	mapper.Get("/noReturn").HandlerFunc(c.NoReturn).Mapping()
 	mapper.Get("/required").HandlerFunc(c.Required).Required("name").Required("age").Mapping()
 	mapper.Get("/param").HandlerFunc(c.Param).Required("name").Param("age").Mapping()
-	mapper.Get("/header").HandlerFunc(c.Header).Header("token").Param("rand").Mapping()
+	mapper.Get("/header").HandlerFunc(c.Header).Header("Token").Param("rand").Mapping()
 	mapper.Get("/rest/{name}/{age}/test").HandlerFunc(c.Param).PathVariable("name").PathVariable("age").Mapping()
 	mapper.Post("/body").HandlerFunc(c.Body).Body("user").Method(http.MethodPut).Mapping()
 	mapper.Post("/vo").HandlerFunc(c.VO).Param("std").Mapping()
+	mapper.Post("/singleFile").HandlerFunc(c.SingleFile).Param("file").Mapping()
+	mapper.Post("/multiFiles").HandlerFunc(c.MultiFiles).Param("files").Mapping()
 }
 
 func (c ParamController) Native(writer http.ResponseWriter, request *http.Request) string {
@@ -71,6 +76,27 @@ func (c ParamController) Body(user *User) *User {
 
 func (c ParamController) VO(sdt *Student) *Student {
 	return sdt
+}
+
+func (c ParamController) SingleFile(file *common.MultipartFile) string {
+	bs, err := ioutil.ReadAll(file.File)
+	if err != nil {
+		gog.Error(err)
+		return "文件上传失败"
+	}
+	gog.Info(string(bs))
+	return c.res("SingleFile filename = " + file.Header.Filename)
+}
+
+func (c ParamController) MultiFiles(files []*common.MultipartFile) string {
+	if files == nil || len(files) == 0 {
+		return "未接收到任何文件"
+	}
+	gog.DebugF("接收到【{}】个文件", len(files))
+	for i, file := range files {
+		gog.DebugF("文件【{}】名称为【{}】", i, file.Header.Filename)
+	}
+	return c.res("MultipartFile " + fmt.Sprintf("接收到【%d】个文件", len(files)))
 }
 
 func (c ParamController) res(str string) string {

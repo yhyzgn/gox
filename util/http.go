@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"github.com/yhyzgn/gox/common"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"reflect"
 	"strings"
@@ -121,7 +122,7 @@ func ResponseBytes(writer http.ResponseWriter, bytes []byte) (err error) {
 	return
 }
 
-// FormatHandlerArgs 格式化方法参数
+// FormatRealArgsValue 格式化方法参数
 func FormatRealArgsValue(args []reflect.Value) string {
 	var sb strings.Builder
 	sb.WriteString("(")
@@ -132,7 +133,8 @@ func FormatRealArgsValue(args []reflect.Value) string {
 			}
 
 			// net/http 下的类型，只打印 类型 即可
-			if tp := arg.Type(); tp.PkgPath() == "net/http" || tp.Kind() == reflect.Ptr && tp.Elem().PkgPath() == "net/http" {
+			tp := arg.Type()
+			if tp.PkgPath() == "net/http" || tp.Kind() == reflect.Ptr && tp.Elem().PkgPath() == "net/http" {
 				sb.WriteString(arg.String())
 				continue
 			}
@@ -168,4 +170,31 @@ func FormatHandlerArgs(params []*common.Param) string {
 	}
 	sb.WriteString(")")
 	return sb.String()
+}
+
+// FormFiles 从 Form 表单中获取上传的文件列表
+func FormFiles(request *http.Request, name string) ([]multipart.File, []*multipart.FileHeader, error) {
+	if request.MultipartForm == nil {
+		err := request.ParseMultipartForm(32 << 20)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	if request.MultipartForm != nil && request.MultipartForm.File != nil {
+		if fhs := request.MultipartForm.File[name]; len(fhs) > 0 {
+			files := make([]multipart.File, 0)
+			headers := make([]*multipart.FileHeader, 0)
+			for _, fh := range fhs {
+				f, err := fh.Open()
+				if err != nil {
+					return nil, nil, err
+				}
+				files = append(files, f)
+				headers = append(headers, fh)
+			}
+			return files, headers, nil
+		}
+	}
+	return nil, nil, http.ErrMissingFile
 }
