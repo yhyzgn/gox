@@ -69,7 +69,7 @@ func (c ParamController) Body(user *User) *User {
 	return user
 }
 
-func (c ParamController) VO(sdt Student) Student {
+func (c ParamController) VO(sdt *Student) *Student {
 	return sdt
 }
 

@@ -36,7 +36,6 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
-	"unsafe"
 )
 
 // RequestDispatcher 请求分发器-实现类
@@ -339,9 +338,6 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 			// 判断参数类型是否是 VO 类
 			if kind == reflect.Struct {
 				temp := reflect.New(tp)
-				if kd == reflect.Struct {
-					temp = temp.Elem()
-				}
 
 				// 装配VO模型
 				temp, ex := getVOParam(request, temp.Interface())
@@ -349,6 +345,10 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 					return nil, ex
 				}
 				// 添加到参数列表
+
+				if typ.Kind() == reflect.Struct {
+					temp = temp.Elem()
+				}
 				args = append(args, temp)
 				continue
 			}
@@ -413,8 +413,7 @@ func getVOParam(request *http.Request, value interface{}) (reflect.Value, *commo
 			utils.FieldSet(temp.Field(i), val)
 		} else {
 			// 否则需要 获取到 对象的指针，再设置值
-			// TODO
-			utils.FieldSet(reflect.NewAt(temp.Field(i).Type(), unsafe.Pointer(temp.Field(i).UnsafeAddr())).Elem(), val)
+			utils.FieldSet(temp.Elem().Field(i), val)
 		}
 	}
 	// 返回原始 数据
