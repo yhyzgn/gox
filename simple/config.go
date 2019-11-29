@@ -21,10 +21,10 @@
 package main
 
 import (
-	testFilter "github.com/yhyzgn/gox/cmd/filter"
-	testInterceptor "github.com/yhyzgn/gox/cmd/interceptor"
 	"github.com/yhyzgn/gox/component/filter"
 	"github.com/yhyzgn/gox/component/interceptor"
+	testFilter "github.com/yhyzgn/gox/simple/filter"
+	testInterceptor "github.com/yhyzgn/gox/simple/interceptor"
 )
 
 type Config struct {

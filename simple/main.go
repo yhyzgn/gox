@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox"
-	"github.com/yhyzgn/gox/cmd/controller"
+	"github.com/yhyzgn/gox/simple/controller"
 	"net/http"
 )
 
