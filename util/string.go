@@ -22,6 +22,8 @@ package util
 
 import (
 	"bytes"
+	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -63,4 +65,88 @@ func FillSuffix(src, ch string, ln int) string {
 		sb.WriteString(ch)
 	}
 	return sb.String()
+}
+
+// StringToValue 将字符串转换为其他类型
+func StringToValue(kind reflect.Kind, value string) reflect.Value {
+	var arg reflect.Value
+	switch kind {
+	case reflect.String:
+		arg = reflect.ValueOf(value)
+		break
+	case reflect.Int:
+		it, err := strconv.Atoi(value)
+		if err == nil {
+			arg = reflect.ValueOf(it)
+		} else {
+			arg = reflect.ValueOf(0)
+		}
+		break
+	case reflect.Int8:
+		arg = reflect.ValueOf(int8(StringToInt(value, 8)))
+		break
+	case reflect.Int16:
+		arg = reflect.ValueOf(int16(StringToInt(value, 16)))
+		break
+	case reflect.Int32:
+		arg = reflect.ValueOf(int32(StringToInt(value, 32)))
+		break
+	case reflect.Int64:
+		arg = reflect.ValueOf(StringToInt(value, 64))
+		break
+	case reflect.Uint:
+		arg = reflect.ValueOf(uint(StringToUInt(value, 0)))
+		break
+	case reflect.Uint8:
+		arg = reflect.ValueOf(uint8(StringToUInt(value, 8)))
+		break
+	case reflect.Uint16:
+		arg = reflect.ValueOf(uint16(StringToUInt(value, 16)))
+		break
+	case reflect.Uint32:
+		arg = reflect.ValueOf(uint32(StringToUInt(value, 32)))
+		break
+	case reflect.Uint64:
+		arg = reflect.ValueOf(StringToUInt(value, 64))
+		break
+	case reflect.Float32:
+		arg = reflect.ValueOf(StringToFloat(value, 32))
+		break
+	case reflect.Float64:
+		arg = reflect.ValueOf(StringToFloat(value, 64))
+		break
+	case reflect.Bool:
+		bl, err := strconv.ParseBool(value)
+		if err == nil {
+			arg = reflect.ValueOf(bl)
+		} else {
+			arg = reflect.ValueOf(false)
+		}
+		break
+	}
+	return arg
+}
+
+// FirstToUpper 首字母大写
+func FirstToUpper(src string) string {
+	if src == "" {
+		return src
+	}
+	chars := []rune(src)
+	if chars[0] >= 97 && chars[0] <= 122 {
+		chars[0] -= 32
+	}
+	return string(chars)
+}
+
+// FirstToLower 首字母小写
+func FirstToLower(src string) string {
+	if src == "" {
+		return src
+	}
+	chars := []rune(src)
+	if chars[0] >= 65 && chars[0] <= 90 {
+		chars[0] += 32
+	}
+	return string(chars)
 }

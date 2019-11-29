@@ -23,6 +23,7 @@ package dispatcher
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/yhyzgn/ghost/utils"
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/component/interceptor"
@@ -34,7 +35,6 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 )
 
@@ -185,7 +185,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 }
 
 // resolve 初步处理参数
-// TODO 待完善功能：参数VO处理 & 文件上传
+// TODO 待完善功能：文件上传
 func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseWriter, request *http.Request, isRESTFul bool) ([]reflect.Value, *common.HTTPError) {
 	path := request.URL.Path
 	handler := reflect.Value(hw.Handler)
@@ -236,10 +236,25 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 
 			if kind != kd {
 				// 参数类型不匹配，可能是注册时参数顺序与实际形参不一致
+				return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("No matched kind of param [%v], maybe some errors happend while handlers mapping of controller.", param.Name))
+			}
+
+			// ----------------------------------------------------------------------------------------------------
+			// 1、判断参数类型是否是 VO 类
+			isVO := kd == reflect.Struct || kd == reflect.Ptr && param.Type.Elem().Kind() == reflect.Struct
+			if isVO {
+				// 装配VO模型
+				temp, ex := getVOParam(request, param.Type)
+				if ex != nil {
+					return nil, ex
+				}
+				// 添加到参数列表
+				args = append(args, temp)
 				continue
 			}
 
-			// RESTful 格式传参
+			// ----------------------------------------------------------------------------------------------------
+			// 2、RESTful 格式传参
 			if param.InPath && pathVariables != nil {
 				index := util.GetPathVariableIndex(param.Name, hw.Path)
 				if index > -1 {
@@ -247,24 +262,26 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 					// 找到位置后，去 url path 的对应位置上获取参数值即可
 					temp := GetPathVariableValue(index, path)
 					// 添加到参数列表
-					args = append(args, StringToValue(kd, temp))
+					args = append(args, util.StringToValue(kd, temp))
 					continue
 				}
 				return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The path [%v] does not contains path variable [%v].", hw.Path, param.Name))
 			}
 
-			// 从请求头获取
+			// ----------------------------------------------------------------------------------------------------
+			// 3、从请求头获取
 			if param.InHeader {
-				temp := request.Header.Get(param.Name)
+				temp := getHeaderParam(request, param.Name)
 				if temp == "" && param.Required {
 					return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is nested, but received value is empty.", param.Name))
 				}
 				// 添加到参数列表
-				args = append(args, StringToValue(kd, temp))
+				args = append(args, util.StringToValue(kd, temp))
 				continue
 			}
 
-			// 有 requestBody 参数
+			// ----------------------------------------------------------------------------------------------------
+			// 4、有 requestBody 参数
 			// 仅支持 POST 方法
 			if param.IsBody {
 				if request.Method != http.MethodPost && request.Method != http.MethodPut {
@@ -301,28 +318,80 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 				continue
 			}
 
-			// 普通参数
-			// 先从 URL 中获取
-			temp := request.URL.Query().Get(param.Name)
-			if temp == "" {
-				// 从 form 中获取
-				temp = request.FormValue(param.Name)
-				if temp == "" && request.Method == http.MethodPost {
-					temp = request.PostFormValue(param.Name)
-				}
-			}
-
+			// ----------------------------------------------------------------------------------------------------
+			// 5、普通参数
+			temp := getNormalParam(request, param.Name)
 			// 如果没获取到参数但又必须，则直接报错
 			if temp == "" && param.Required {
 				return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is nested, but no value received.", param.Name))
 			}
-
 			// 添加到参数列表
-			args = append(args, StringToValue(kd, temp))
+			args = append(args, util.StringToValue(kd, temp))
 		}
 	}
 
 	return args, nil
+}
+
+// getVOParam 自动填充 VO 参数
+func getVOParam(request *http.Request, tp reflect.Type) (reflect.Value, *common.HTTPError) {
+	vof := reflect.ValueOf(reflect.New(tp))
+	count := vof.Type().NumField()
+	for i := 0; i < count; i++ {
+		field := tp.Field(i)
+		temp, ex := getVOParamValueByField(request, field)
+		if ex != nil {
+			return temp, ex
+		}
+		utils.FieldSet(vof.Field(i), temp)
+	}
+	return vof, nil
+}
+
+// getVOParamValueByField 填充 VO 字段
+func getVOParamValueByField(request *http.Request, field reflect.StructField) (reflect.Value, *common.HTTPError) {
+	name := field.Tag.Get("param")
+	if name == "" {
+		name = util.FirstToLower(field.Name)
+	}
+	_, inHeader := field.Tag.Lookup("header")
+	_, required := field.Tag.Lookup("required")
+
+	var temp string
+	if inHeader {
+		temp = getHeaderParam(request, name)
+		if temp == "" {
+			temp = getHeaderParam(request, field.Name)
+		}
+	} else {
+		temp = getNormalParam(request, name)
+		if temp == "" {
+			temp = getNormalParam(request, field.Name)
+		}
+	}
+	if temp == "" && required {
+		return reflect.ValueOf(nil), common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is nested, but no value received.", name))
+	}
+	return reflect.ValueOf(temp), nil
+}
+
+// getHeaderParam 从请求头中获取参数
+func getHeaderParam(request *http.Request, name string) string {
+	return request.Header.Get(name)
+}
+
+// getNormalParam 普通参数获取
+func getNormalParam(request *http.Request, name string) string {
+	// 先从 URL 中获取
+	temp := request.URL.Query().Get(name)
+	if temp == "" {
+		// 从 form 中获取
+		temp = request.FormValue(name)
+		if temp == "" && request.Method == http.MethodPost {
+			temp = request.PostFormValue(name)
+		}
+	}
+	return temp
 }
 
 // GetPathVariableValue 用 参数位置 从 实际 path 中获取到参数值
@@ -332,60 +401,6 @@ func GetPathVariableValue(index int, path string) string {
 		return nodes[index]
 	}
 	return ""
-}
-
-// StringToValue 将字符串转换为其他类型
-func StringToValue(kind reflect.Kind, value string) reflect.Value {
-	var arg reflect.Value
-	switch kind {
-	case reflect.String:
-		arg = reflect.ValueOf(value)
-		break
-	case reflect.Int:
-		it, err := strconv.Atoi(value)
-		if err == nil {
-			arg = reflect.ValueOf(it)
-		} else {
-			arg = reflect.ValueOf(0)
-		}
-		break
-	case reflect.Int8:
-		arg = reflect.ValueOf(int8(util.StringToInt(value, 8)))
-		break
-	case reflect.Int16:
-		arg = reflect.ValueOf(int16(util.StringToInt(value, 16)))
-		break
-	case reflect.Int32:
-		arg = reflect.ValueOf(int32(util.StringToInt(value, 32)))
-		break
-	case reflect.Int64:
-		arg = reflect.ValueOf(util.StringToInt(value, 64))
-		break
-	case reflect.Uint:
-		arg = reflect.ValueOf(uint(util.StringToUInt(value, 0)))
-		break
-	case reflect.Uint8:
-		arg = reflect.ValueOf(uint8(util.StringToUInt(value, 8)))
-		break
-	case reflect.Uint16:
-		arg = reflect.ValueOf(uint16(util.StringToUInt(value, 16)))
-		break
-	case reflect.Uint32:
-		arg = reflect.ValueOf(uint32(util.StringToUInt(value, 32)))
-		break
-	case reflect.Uint64:
-		arg = reflect.ValueOf(util.StringToUInt(value, 64))
-		break
-	case reflect.Bool:
-		bl, err := strconv.ParseBool(value)
-		if err == nil {
-			arg = reflect.ValueOf(bl)
-		} else {
-			arg = reflect.ValueOf(false)
-		}
-		break
-	}
-	return arg
 }
 
 // VerifyMethod 校验请求方法

@@ -41,3 +41,12 @@ func StringToUInt(value string, size int) uint64 {
 	}
 	return 0
 }
+
+// StringToFloat String 转为不同长度的 float
+func StringToFloat(value string, size int) float64 {
+	ft, err := strconv.ParseFloat(value, size)
+	if err == nil {
+		return ft
+	}
+	return 0
+}

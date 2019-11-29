@@ -23,8 +23,8 @@ package gox
 import (
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/core"
+	"github.com/yhyzgn/gox/util"
 	"net/http"
-	"regexp"
 	"testing"
 )
 
@@ -40,10 +40,12 @@ func (A) Hello(name string, age int, writer http.ResponseWriter, request *http.R
 }
 
 func TestRouter_Add(t *testing.T) {
-	reg, _ := regexp.Compile("/\\*+?$")
-	gog.Debug(reg.MatchString("/api/**"))
+	gog.Debug(util.FirstToLower("AA"))
 
-	gog.Debug(reg.ReplaceAllString("/api/**", "/.+?"))
+	//reg, _ := regexp.Compile("/\\*+?$")
+	//gog.Debug(reg.MatchString("/api/**"))
+	//
+	//gog.Debug(reg.ReplaceAllString("/api/**", "/.+?"))
 
 	//fmt.Println(util.StringToInt("100", 0))
 	//
