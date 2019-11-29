@@ -59,50 +59,88 @@ func (sp *Ship) Mapping() *Mapper {
 	// 其他均是自定义参数，需要注册
 	x := v.Type()
 	paramCount := x.NumIn()
-	if paramCount > len(sp.params)+2 {
-		// 有些参数未注册
-		gog.Fatal("Maybe some params have not been registered.")
+
+	// 判断是否有 http.ResponseWriter 和 *http.Request 参数
+	// 便于参数有效性的判断
+	hasWriter, hasRequest := sp.hasResponseWriterAndRequest(x)
+	delta := 0
+	if hasWriter {
+		delta++
+	}
+	if hasRequest {
+		delta++
 	}
 
+	if paramCount > len(sp.params)+delta {
+		// 有些参数未注册
+		gog.Fatal("Maybe some params have not been registered.")
+	} else if paramCount < len(sp.params)+delta {
+		// 注册了一些不必要参数
+		gog.Fatal("Maybe some params is needn't.")
+	}
+
+	// 记录所有参数
+	tempParams := make([]*common.Param, paramCount)
+
+	// pos 用来取 已注册过的 参数
 	pos := 0
 	for i := 0; i < paramCount; i++ {
 		// 原始类型
-		typ := x.In(i)
+		realType := x.In(i)
 		// 具体类型，如果是指针，则变换为具体类型
-		tp := typ
-		if tp.Kind() == reflect.Ptr {
-			tp = tp.Elem()
+		elemType := realType
+		if elemType.Kind() == reflect.Ptr {
+			elemType = elemType.Elem()
 		}
-		pkg := tp.PkgPath()
-		kind := tp.Kind()
-		name := tp.Name()
+		elemKind := elemType.Kind()
+		elemName := elemType.Name()
 
-		if pkg == "net/http" {
-			// 可能是 http.ResponseWriter 或者 *http.Request
-			if kind == reflect.Interface && name == "ResponseWriter" {
-				// http.ResponseWriter
-				continue
-			}
-
-			if kind == reflect.Struct && name == "Request" {
-				// http.Request
-				continue
-			}
-			gog.FatalF("Unsupported argument [%v] of function [%v]", typ, v)
+		var param *common.Param
+		// http.ResponseWriter 或者 *http.Request
+		if elemType.PkgPath() == "net/http" && (elemKind == reflect.Interface && elemName == "ResponseWriter" || realType.Kind() == reflect.Ptr && elemKind == reflect.Struct && elemName == "Request") {
+			// http.ResponseWriter || *http.Request
+			param = new(common.Param)
+		} else {
+			// 已注册过的参数 映射 Type
+			param = sp.params[pos]
 		}
-
-		if pos >= len(sp.params) {
-			gog.Fatal("Maybe some params have not been registered.")
-		}
-
-		// 映射 Type
-		sp.params[pos].Type = typ
+		param.RealType = realType
+		param.IsPtr = realType != elemType
+		param.ElemType = elemType
+		tempParams[i] = param
 		pos++
 	}
-
+	sp.params = tempParams
 	// 注册 每一条映射关系
 	wire.Instance.Mapping(sp.resolvePath(), common.Handler(v), sp.methods, sp.params)
 	return sp.mapper
+}
+
+func (sp *Ship) hasResponseWriterAndRequest(tp reflect.Type) (hasWriter bool, hasRequest bool) {
+	paramCount := tp.NumIn()
+	for i := 0; i < paramCount; i++ {
+		realType := tp.In(i)
+		elemType := realType
+		if elemType.Kind() == reflect.Ptr {
+			elemType = elemType.Elem()
+		}
+
+		if elemType.PkgPath() == "net/http" {
+			if elemType.Kind() == reflect.Interface && elemType.Name() == "ResponseWriter" {
+				hasWriter = true
+				continue
+			}
+
+			if realType.Kind() == reflect.Ptr && elemType.Kind() == reflect.Struct && elemType.Name() == "Request" {
+				hasRequest = true
+			}
+		}
+
+		if hasWriter && hasRequest {
+			return
+		}
+	}
+	return
 }
 
 // resolvePath 用 / 处理 path，构建标准 url path
@@ -156,7 +194,7 @@ func (sp *Ship) Param(name string) *Ship {
 	return sp
 }
 
-// PathVariable 注册RESTFul格式参数
+// PathVariable 注册RESTful格式参数
 func (sp *Ship) PathVariable(name string) *Ship {
 	sp.params = append(sp.params, common.NewParam(name, true, false, true, false))
 	return sp

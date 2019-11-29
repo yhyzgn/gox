@@ -130,6 +130,12 @@ func FormatRealArgsValue(args []reflect.Value) string {
 			if i > 0 {
 				sb.WriteString(", ")
 			}
+
+			// net/http 下的类型，只打印 类型 即可
+			if tp := arg.Type(); tp.PkgPath() == "net/http" || tp.Kind() == reflect.Ptr && tp.Elem().PkgPath() == "net/http" {
+				sb.WriteString(arg.String())
+				continue
+			}
 			sb.WriteString(fmt.Sprint(arg.Interface()))
 		}
 	}
@@ -143,12 +149,21 @@ func FormatHandlerArgs(params []*common.Param) string {
 	sb.WriteString("(")
 	if params != nil && len(params) > 0 {
 		for i, param := range params {
+			name := param.Name
+			if name == "" {
+				name = fmt.Sprintf("arg%d", i)
+			}
 			if i > 0 {
 				sb.WriteString(", ")
 			}
-			sb.WriteString(param.Name)
+			sb.WriteString(name)
 			sb.WriteString(" ")
-			sb.WriteString(param.Type.Name())
+			if param.IsPtr {
+				sb.WriteString("*")
+				sb.WriteString(param.ElemType.Name())
+			} else {
+				sb.WriteString(param.RealType.Name())
+			}
 		}
 	}
 	sb.WriteString(")")

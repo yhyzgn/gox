@@ -27,24 +27,24 @@ import (
 )
 
 const (
-	// PatternRESTFul 匹配 RESTFul 格式的 pattern
-	PatternRESTFul = "/{([\\w-_]+?)}"
-	// PatternRESTFulReal 将配置的 RESTFul 格式 path 转换成 统配 path 的正则
-	PatternRESTFulReal = "/[\\w-_]+?"
+	// PatternRESTful 匹配 RESTful 格式的 pattern
+	PatternRESTful = "/{([\\w-_]+?)}"
+	// PatternRESTfulReal 将配置的 RESTful 格式 path 转换成 统配 path 的正则
+	PatternRESTfulReal = "/[\\w-_]+?"
 )
 
 var (
-	regRESTFul, _ = regexp.Compile(PatternRESTFul)
+	regRESTful, _ = regexp.Compile(PatternRESTful)
 )
 
-// IsRESTFul path 是否是 RESTFul 格式
-func IsRESTFul(path string) bool {
-	return regRESTFul.MatchString(path)
+// IsRESTful path 是否是 RESTful 格式
+func IsRESTful(path string) bool {
+	return regRESTful.MatchString(path)
 }
 
-// GetRESTFulParams 获取 RESTFul 路径中的 所有参数
-func GetRESTFulParams(path string) []string {
-	matches := regRESTFul.FindAllStringSubmatch(path, -1)
+// GetRESTfulParams 获取 RESTful 路径中的 所有参数
+func GetRESTfulParams(path string) []string {
+	matches := regRESTful.FindAllStringSubmatch(path, -1)
 	// str : /api/{name}/test/{age}/{user-id}/{auth_code}
 	// matches : [[/{name} name] [/{age} age] [/{user-id} user-id] [/{auth_code} auth_code]]
 	result := make([]string, 0)
@@ -56,9 +56,9 @@ func GetRESTFulParams(path string) []string {
 	return result
 }
 
-// ConvertRESTFulPathToPattern 将配置的 RESTFul 格式 path 转换成 统配 path 的正则
-func ConvertRESTFulPathToPattern(path string) string {
-	return regRESTFul.ReplaceAllString(path, PatternRESTFulReal)
+// ConvertRESTfulPathToPattern 将配置的 RESTful 格式 path 转换成 统配 path 的正则
+func ConvertRESTfulPathToPattern(path string) string {
+	return regRESTful.ReplaceAllString(path, PatternRESTfulReal)
 }
 
 // GetPathVariableIndex 从注册的 path 中 获取 参数位置
@@ -66,8 +66,8 @@ func GetPathVariableIndex(name string, path string) int {
 	nodes := strings.Split(path, "/")
 	if nodes != nil {
 		for i, node := range nodes {
-			// 根据 RESTFul 分段来匹配 path 节点
-			if regRESTFul.MatchString("/"+node) && node == fmt.Sprintf("{%v}", name) {
+			// 根据 RESTful 分段来匹配 path 节点
+			if regRESTful.MatchString("/"+node) && node == fmt.Sprintf("{%v}", name) {
 				return i
 			}
 		}

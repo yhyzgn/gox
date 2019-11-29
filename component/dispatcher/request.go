@@ -65,17 +65,17 @@ func (rd *RequestDispatcher) Dispatch(writer http.ResponseWriter, request *http.
 
 	// 匹配路由
 	for _, h := range wire.Instance.All() {
-		// 如果直接完全匹配，说明不是 RESTFul 模式
+		// 如果直接完全匹配，说明不是 RESTful 模式
 		if reqPath == h.Path {
 			rd.doDispatch(h, writer, request, false)
 			return
-		} else if util.IsRESTFul(h.Path) {
+		} else if util.IsRESTful(h.Path) {
 			// 否则 正则匹配
 			// 将 路由注册的路径 转换为 正则匹配模板，再看是否与真实路径匹配
-			realPathPattern := util.ConvertRESTFulPathToPattern(h.Path)
+			realPathPattern := util.ConvertRESTfulPathToPattern(h.Path)
 			matched, err := regexp.MatchString(realPathPattern, reqPath)
 			if err == nil && matched {
-				// RESTFul 匹配上了
+				// RESTful 匹配上了
 				rd.doDispatch(h, writer, request, true)
 				return
 			}
@@ -87,7 +87,7 @@ func (rd *RequestDispatcher) Dispatch(writer http.ResponseWriter, request *http.
 }
 
 // doDispatch 具体的请求分发操作
-func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.ResponseWriter, request *http.Request, isRESTFul bool) {
+func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.ResponseWriter, request *http.Request, isRESTful bool) {
 	md := VerifyMethod(hw, request.Method)
 	if !md {
 		// 不支持的 http 方法
@@ -104,7 +104,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	resultResolver := util.GetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()).(resolver.ResultResolver)
 
 	// 先处理一遍参数
-	args, ex := rd.resolve(hw, writer, request, isRESTFul)
+	args, ex := rd.resolve(hw, writer, request, isRESTful)
 	if ex != nil {
 		gog.Error(ex.Error)
 		ex.Response(writer)
@@ -198,226 +198,199 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 }
 
 // resolve 初步处理参数
-func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseWriter, request *http.Request, isRESTFul bool) ([]reflect.Value, *common.HTTPError) {
+func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseWriter, request *http.Request, isRESTful bool) ([]reflect.Value, *common.HTTPError) {
 	path := request.URL.Path
 	handler := reflect.Value(hw.Handler)
-	// 每个方法最多 2 个参数可以是 http.ResponseWriter 和 *http.Request
-	// 其他均是自定义参数，需要注册
-	x := handler.Type()
-	paramCount := x.NumIn()
-	pc := handler.Pointer()
-	handlerName := util.ReplaceAll(runtime.FuncForPC(pc).Name(), "-fm", util.FormatHandlerArgs(hw.Params))
+	handlerName := util.ReplaceAll(runtime.FuncForPC(handler.Pointer()).Name(), "-fm", util.FormatHandlerArgs(hw.Params))
 
 	var pathVariables []string
-	if isRESTFul {
-		pathVariables = util.GetRESTFulParams(hw.Path)
+	if isRESTful {
+		pathVariables = util.GetRESTfulParams(hw.Path)
 	}
 	args := make([]reflect.Value, 0)
 
-	hasParams := hw.Params != nil && len(hw.Params) > 0
-
-	pos := 0
-	for i := 0; i < paramCount; i++ {
-		// 原始类型
-		typ := x.In(i)
-		// 具体类型，如果是指针，则变换为具体类型
-		tp := typ
-		if tp.Kind() == reflect.Ptr {
-			tp = tp.Elem()
-		}
-		pkg := tp.PkgPath()
-		kind := tp.Kind()
-		name := tp.Name()
-
-		if pkg == "net/http" {
-			// 可能是 http.ResponseWriter 或者 *http.Request
-			if kind == reflect.Interface && name == "ResponseWriter" {
+	for _, param := range hw.Params {
+		// ----------------------------------------------------------------------------------------------    net/http    ----------------------------------------------------------------------------------------------
+		// http.ResponseWriter || *http.Request
+		if param.ElemType.PkgPath() == "net/http" {
+			if param.ElemType.Kind() == reflect.Interface && param.ElemType.Name() == "ResponseWriter" {
 				// http.ResponseWriter
 				args = append(args, reflect.ValueOf(writer))
 				continue
-			}
-
-			if kind == reflect.Struct && name == "Request" {
+			} else if param.RealType.Kind() == reflect.Ptr && param.ElemType.Kind() == reflect.Struct && param.ElemType.Name() == "Request" {
 				// http.Request
 				args = append(args, reflect.ValueOf(request))
 				continue
 			}
+			return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The net/http param only support http.ResponseWriter and *http.Request, but handler [%v] contains [%v].", handlerName, param.ElemType.Name()))
 		}
 
-		if hasParams {
-			param := hw.Params[pos]
-			kd := param.Type.Kind()
-			pos++
-
-			if typ.Kind() != kd {
-				// 参数类型不匹配，可能是注册时参数顺序与实际形参不一致
-				return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("No matched kind of param [%v], maybe some errors happend while handlers mapping of controller.", param.Name))
-			}
-
-			// ----------------------------------------------------------------------------------------------------
-			// RESTful 格式传参
-			if param.InPath && pathVariables != nil {
-				index := util.GetPathVariableIndex(param.Name, hw.Path)
-				if index > -1 {
-					// 找到啦~
-					// 找到位置后，去 url path 的对应位置上获取参数值即可
-					temp := GetPathVariableValue(index, path)
-					// 添加到参数列表
-					args = append(args, util.StringToValue(kd, temp))
-					continue
-				}
-				return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The path [%v] does not contains path variable [%v].", hw.Path, param.Name))
-			}
-
-			// ----------------------------------------------------------------------------------------------------
-			// 从请求头获取
-			if param.InHeader {
-				temp := getHeaderParam(request, param.Name)
-				if temp == "" && param.Required {
-					return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is nested, but received value is empty.", param.Name))
-				}
+		// ----------------------------------------------------------------------------------------------     RESTful    ----------------------------------------------------------------------------------------------
+		// RESTful 格式传参
+		if param.InPath && pathVariables != nil {
+			index := util.GetPathVariableIndex(param.Name, hw.Path)
+			if index > -1 {
+				// 找到啦~
+				// 找到位置后，去 url path 的对应位置上获取参数值即可
+				temp := GetPathVariableValue(index, path)
 				// 添加到参数列表
-				args = append(args, util.StringToValue(kd, temp))
+				args = append(args, util.StringToValue(param.RealType.Kind(), temp))
 				continue
 			}
+			return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The path [%v] does not contains path variable [%v].", hw.Path, param.Name))
+		}
 
-			// ----------------------------------------------------------------------------------------------------
-			// 有 requestBody 参数
-			// 仅支持 POST 方法
-			if param.IsBody {
-				if request.Method != http.MethodPost && request.Method != http.MethodPut {
-					return nil, common.NewHTTPError(http.StatusMethodNotAllowed, fmt.Sprintf("RequestBody only support 'POST' and 'PUT' method, but now is [%v].", request.Method))
-				}
-
-				if !VerifyMethod(hw, http.MethodPost) && !VerifyMethod(hw, http.MethodPut) {
-					return nil, common.NewHTTPError(http.StatusMethodNotAllowed, fmt.Sprintf("Maybe the handler [%v] should be register as 'POST' or 'PUT' method, now is %v.", handlerName, hw.Methods))
-				}
-
-				// 获取到 requestBody
-				bs := util.RecycleRequestBody(request)
-				if bs != nil {
-					var arg interface{}
-					switch kd {
-					case reflect.Map:
-						arg = reflect.MakeMap(tp).Interface()
-						break
-					case reflect.Slice:
-						arg = reflect.MakeSlice(tp, 0, 0).Interface()
-						break
-					case reflect.Array:
-						arg = reflect.New(reflect.ArrayOf(0, tp))
-						break
-					case reflect.Struct:
-						arg = reflect.New(tp).Interface()
-						break
-					case reflect.Ptr:
-						arg = reflect.New(tp).Interface()
-						break
-					}
-
-					// json 解码
-					err := json.Unmarshal(bs, arg)
-					if err != nil {
-						gog.Error(err)
-						continue
-					}
-
-					if kd == reflect.Struct {
-						// 如果接收的是 struct 类型，需要从指针中获取到 struct
-						// 添加到参数列表
-						args = append(args, reflect.ValueOf(arg).Elem())
-					} else {
-						// 添加到参数列表
-						args = append(args, reflect.ValueOf(arg))
-					}
-				}
-				continue
-			}
-
-			// ----------------------------------------------------------------------------------------------------
-			// 判断参数类型是否是 VO 类
-			if kind == reflect.Struct {
-				temp := reflect.New(tp)
-
-				// 装配VO模型
-				temp, ex := getVOParam(request, temp.Interface())
-				if ex != nil {
-					return nil, ex
-				}
-				// 添加到参数列表
-
-				if typ.Kind() == reflect.Struct {
-					temp = temp.Elem()
-				}
-				args = append(args, temp)
-				continue
-			}
-
-			// ----------------------------------------------------------------------------------------------------
-			// 文件上传
-			// 兼容 MultipartFile 和 *MultipartFile 两种类型
-			if t := reflect.TypeOf(common.MultipartFile{}); param.Type.Name() == t.Name() || t.Kind() == reflect.Ptr && param.Type.Name() == t.Elem().Name() {
-				file, header, err := request.FormFile(param.Name)
-				if err != nil {
-					return nil, common.NewHTTPError(http.StatusBadRequest, err.Error())
-				}
-
-				mf := &common.MultipartFile{
-					Header: header,
-					File:   file,
-				}
-
-				// 根据具体接收类型（对象|指针）装配参数
-				var val reflect.Value
-				if t.Kind() == reflect.Ptr {
-					val = reflect.ValueOf(mf)
-				} else {
-					val = reflect.ValueOf(*mf)
-				}
-				args = append(args, val)
-			}
-
-			// ----------------------------------------------------------------------------------------------------
-			// 普通参数
-			temp := getNormalParam(request, param.Name)
-			// 如果没获取到参数但又必须，则直接报错
+		// ----------------------------------------------------------------------------------------------     Header     ----------------------------------------------------------------------------------------------
+		// 从请求头获取
+		if param.InHeader {
+			temp := getHeaderParam(request, param.Name)
 			if temp == "" && param.Required {
-				return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is nested, but no value received.", param.Name))
+				return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is nested, but received value is empty.", param.Name))
 			}
 			// 添加到参数列表
-			args = append(args, util.StringToValue(kd, temp))
+			args = append(args, util.StringToValue(param.RealType.Kind(), temp))
+			continue
 		}
-	}
 
+		// ----------------------------------------------------------------------------------------------   RequestBody  ----------------------------------------------------------------------------------------------
+		// 有 requestBody 参数
+		// 仅支持 POST 和 PUT 方法
+		if param.IsBody {
+			if request.Method != http.MethodPost && request.Method != http.MethodPut {
+				return nil, common.NewHTTPError(http.StatusMethodNotAllowed, fmt.Sprintf("RequestBody only support 'POST' and 'PUT' method, but now is [%v].", request.Method))
+			}
+
+			if !VerifyMethod(hw, http.MethodPost) && !VerifyMethod(hw, http.MethodPut) {
+				return nil, common.NewHTTPError(http.StatusMethodNotAllowed, fmt.Sprintf("Maybe the handler [%v] should be register as 'POST' or 'PUT' method, now is %v.", handlerName, hw.Methods))
+			}
+
+			// 获取到 requestBody
+			bs := util.RecycleRequestBody(request)
+			if bs != nil {
+				var arg interface{}
+				// switch 即使两个 case 条件相同，也不能合并，必须分开
+				switch param.RealType.Kind() {
+				case reflect.Map:
+					arg = reflect.MakeMap(param.ElemType).Interface()
+					break
+				case reflect.Slice:
+					arg = reflect.MakeSlice(param.ElemType, 0, 0).Interface()
+					break
+				case reflect.Array:
+					arg = reflect.New(reflect.ArrayOf(0, param.ElemType))
+					break
+				case reflect.Struct:
+					arg = reflect.New(param.ElemType).Interface()
+					break
+				case reflect.Ptr:
+					arg = reflect.New(param.ElemType).Interface()
+					break
+				}
+
+				// json 解码
+				err := json.Unmarshal(bs, arg)
+				if err != nil {
+					gog.Error(err)
+					continue
+				}
+
+				val := reflect.ValueOf(arg)
+				// 如果接收的是 struct 类型，需要从指针中获取到 struct
+				if param.RealType.Kind() == reflect.Struct {
+					val = reflect.ValueOf(arg).Elem()
+				}
+				// 添加到参数列表
+				args = append(args, val)
+				continue
+			}
+			return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("There is no request body of request [%v], but it's nested.", hw.Path))
+		}
+
+		// ----------------------------------------------------------------------------------------------       VO       -----------------------------------------------------------------------------------------------
+		// 判断参数类型是否是 VO 类
+		if param.ElemType.Kind() == reflect.Struct {
+			temp := reflect.New(param.ElemType)
+
+			// 装配VO模型
+			temp, ex := getVOParam(request, temp.Interface())
+			if ex != nil {
+				return nil, ex
+			}
+			// 添加到参数列表
+			// 如果接收的是 struct 类型，需要从指针中获取到 struct
+			if param.RealType.Kind() == reflect.Struct {
+				temp = temp.Elem()
+			}
+			args = append(args, temp)
+			continue
+		}
+
+		// ----------------------------------------------------------------------------------------------  MultipartFile ----------------------------------------------------------------------------------------------
+		// 文件上传
+		// 兼容 MultipartFile 和 *MultipartFile 两种类型
+		if t := reflect.TypeOf(common.MultipartFile{}); param.ElemType.Name() == t.Name() || param.IsPtr && param.ElemType.Name() == t.Name() {
+			file, header, err := request.FormFile(param.Name)
+			if err != nil {
+				return nil, common.NewHTTPError(http.StatusBadRequest, err.Error())
+			}
+
+			mf := &common.MultipartFile{
+				Header: header,
+				File:   file,
+			}
+
+			// 根据具体接收类型（对象|指针）装配参数
+			var val reflect.Value
+			if param.IsPtr {
+				val = reflect.ValueOf(mf)
+			} else {
+				val = reflect.ValueOf(*mf)
+			}
+			args = append(args, val)
+			continue
+		}
+
+		// ----------------------------------------------------------------------------------------------    Normal    ----------------------------------------------------------------------------------------------
+		// 普通参数
+		// Query / Form / PostForm
+		temp := getNormalParam(request, param.Name)
+		// 如果没获取到参数但又必须，则直接报错
+		if temp == "" && param.Required {
+			return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is nested, but no value received.", param.Name))
+		}
+		// 添加到参数列表
+		args = append(args, util.StringToValue(param.RealType.Kind(), temp))
+	}
 	return args, nil
 }
 
 // getVOParam 自动填充 VO 参数
 func getVOParam(request *http.Request, value interface{}) (reflect.Value, *common.HTTPError) {
-	vof := reflect.ValueOf(value)
+	realValue := reflect.ValueOf(value)
 	// 临时变量，便于从指针转换为 struct
-	temp := vof
-	if temp.Kind() == reflect.Ptr {
-		temp = temp.Elem()
+	elemValue := realValue
+	if elemValue.Kind() == reflect.Ptr {
+		elemValue = elemValue.Elem()
 	}
-	tp := temp.Type()
-	count := tp.NumField()
+	elemType := elemValue.Type()
+	count := elemType.NumField()
+
 	for i := 0; i < count; i++ {
-		field := tp.Field(i)
+		field := elemType.Field(i)
 		val, ex := getVOParamValueByField(request, field)
 		if ex != nil {
 			return val, ex
 		}
-		if vof.Kind() == reflect.Ptr {
+		if realValue.Kind() == reflect.Ptr {
 			// 如果 对象 是 指针，则可以直接设置字段值
-			utils.FieldSet(temp.Field(i), val)
+			utils.FieldSet(elemValue.Field(i), val)
 		} else {
-			// 否则需要 获取到 对象的指针，再设置值
-			utils.FieldSet(temp.Elem().Field(i), val)
+			// 否则需要到指针指向的对象，再设置值
+			utils.FieldSet(elemValue.Elem().Field(i), val)
 		}
 	}
 	// 返回原始 数据
-	return vof, nil
+	return realValue, nil
 }
 
 // getVOParamValueByField 填充 VO 字段

@@ -24,12 +24,14 @@ import "reflect"
 
 // Param 参数信息定义
 type Param struct {
-	Name     string
-	Required bool
-	InHeader bool
-	InPath   bool
-	IsBody   bool
-	Type     reflect.Type
+	Name     string       // 参数名
+	Required bool         // 是否必须
+	InHeader bool         // 是否在 header 中，普通 header 参数
+	InPath   bool         // 是否在 path 中，RESTful 参数
+	IsBody   bool         // 是否在 body 中，RequestBody 参数
+	RealType reflect.Type // 参数的实际类型
+	IsPtr    bool         // 参数是否是指针
+	ElemType reflect.Type // 如果实际类型是指针，这里记录指针所指向的类型
 }
 
 // NewParam 一个新的参数
