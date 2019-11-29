@@ -68,7 +68,6 @@ func TestRouter_Add(t *testing.T) {
 	//
 	//fmt.Println(regexp.MatchString("^" + real + "$", "/api/Jason/test/23/1234/asdfasfasfasf"))
 
-
 	//NewRouter().Mapping("/api", &A{})
 
 	//a := &A{}

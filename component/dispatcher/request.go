@@ -185,7 +185,6 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 }
 
 // resolve 初步处理参数
-// TODO 待完善功能：文件上传
 func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseWriter, request *http.Request, isRESTFul bool) ([]reflect.Value, *common.HTTPError) {
 	path := request.URL.Path
 	handler := reflect.Value(hw.Handler)
@@ -240,7 +239,7 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 			}
 
 			// ----------------------------------------------------------------------------------------------------
-			// 1、判断参数类型是否是 VO 类
+			// 判断参数类型是否是 VO 类
 			isVO := kd == reflect.Struct || kd == reflect.Ptr && param.Type.Elem().Kind() == reflect.Struct
 			if isVO {
 				// 装配VO模型
@@ -254,7 +253,7 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 			}
 
 			// ----------------------------------------------------------------------------------------------------
-			// 2、RESTful 格式传参
+			// RESTful 格式传参
 			if param.InPath && pathVariables != nil {
 				index := util.GetPathVariableIndex(param.Name, hw.Path)
 				if index > -1 {
@@ -269,7 +268,7 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 			}
 
 			// ----------------------------------------------------------------------------------------------------
-			// 3、从请求头获取
+			// 从请求头获取
 			if param.InHeader {
 				temp := getHeaderParam(request, param.Name)
 				if temp == "" && param.Required {
@@ -281,7 +280,7 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 			}
 
 			// ----------------------------------------------------------------------------------------------------
-			// 4、有 requestBody 参数
+			// 有 requestBody 参数
 			// 仅支持 POST 方法
 			if param.IsBody {
 				if request.Method != http.MethodPost && request.Method != http.MethodPut {
@@ -319,7 +318,31 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 			}
 
 			// ----------------------------------------------------------------------------------------------------
-			// 5、普通参数
+			// 文件上传
+			// 兼容 MultipartFile 和 *MultipartFile 两种类型
+			if t := reflect.TypeOf(common.MultipartFile{}); param.Type.Name() == t.Name() || t.Kind() == reflect.Ptr && param.Type.Name() == t.Elem().Name() {
+				file, header, err := request.FormFile(param.Name)
+				if err != nil {
+					return nil, common.NewHTTPError(http.StatusBadRequest, err.Error())
+				}
+
+				mf := &common.MultipartFile{
+					Header: header,
+					File:   file,
+				}
+
+				// 根据具体接收类型（对象|指针）装配参数
+				var val reflect.Value
+				if t.Kind() == reflect.Ptr {
+					val = reflect.ValueOf(mf)
+				} else {
+					val = reflect.ValueOf(*mf)
+				}
+				args = append(args, val)
+			}
+
+			// ----------------------------------------------------------------------------------------------------
+			// 普通参数
 			temp := getNormalParam(request, param.Name)
 			// 如果没获取到参数但又必须，则直接报错
 			if temp == "" && param.Required {

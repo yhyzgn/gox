@@ -21,6 +21,7 @@
 package common
 
 import (
+	"mime/multipart"
 	"reflect"
 )
 
@@ -46,6 +47,12 @@ type HandlerFunc interface{}
 
 // Handler 请求处理器，指向 HandlerFunc
 type Handler reflect.Value
+
+// MultipartFile 表单上传文件模型
+type MultipartFile struct {
+	Header *multipart.FileHeader
+	File   multipart.File
+}
 
 // Call 处理器实际处理操作，调用具体方法，并返回值
 func (h Handler) Call(args []reflect.Value) []reflect.Value {
