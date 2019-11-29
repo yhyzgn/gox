@@ -21,6 +21,7 @@
 package util
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -65,7 +66,8 @@ func GetPathVariableIndex(name string, path string) int {
 	nodes := strings.Split(path, "/")
 	if nodes != nil {
 		for i, node := range nodes {
-			if regRESTFul.MatchString("/" + node) {
+			// 根据 RESTFul 分段来匹配 path 节点
+			if regRESTFul.MatchString("/"+node) && node == fmt.Sprintf("{%v}", name) {
 				return i
 			}
 		}

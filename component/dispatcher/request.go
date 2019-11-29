@@ -36,6 +36,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"unsafe"
 )
 
 // RequestDispatcher 请求分发器-实现类
@@ -56,16 +57,24 @@ func (rd *RequestDispatcher) SetInterceptorRegister(register *interceptor.Regist
 
 // Dispatch 分发具体请求
 func (rd *RequestDispatcher) Dispatch(writer http.ResponseWriter, request *http.Request) {
+	reqPath := request.URL.Path
+
+	// 如果请求路径以 / 结尾，则自动去除
+	if strings.HasSuffix(reqPath, "/") {
+		reqPath = reqPath[0 : len(reqPath)-1]
+	}
+
+	// 匹配路由
 	for _, h := range wire.Instance.All() {
 		// 如果直接完全匹配，说明不是 RESTFul 模式
-		if request.URL.Path == h.Path {
+		if reqPath == h.Path {
 			rd.doDispatch(h, writer, request, false)
 			return
 		} else if util.IsRESTFul(h.Path) {
 			// 否则 正则匹配
 			// 将 路由注册的路径 转换为 正则匹配模板，再看是否与真实路径匹配
 			realPathPattern := util.ConvertRESTFulPathToPattern(h.Path)
-			matched, err := regexp.MatchString(realPathPattern, request.URL.Path)
+			matched, err := regexp.MatchString(realPathPattern, reqPath)
 			if err == nil && matched {
 				// RESTFul 匹配上了
 				rd.doDispatch(h, writer, request, true)
@@ -152,6 +161,11 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	// 拦截器通过后，将请求交由 处理器 处理
 	// 已经获取到参数列表，执行方法即可
 	results := handler.Call(args)
+	if results == nil || len(results) == 0 {
+		// 无返回值
+		gog.InfoF("The request [{}] responded, and the handler needn't return any value.", request.URL.Path)
+		return
+	}
 	// 响应结果交由 结果处理器 处理
 	res, err := resultResolver.Resolve(hw, results, writer, request)
 	// 如果有错误，就响应错误信息
@@ -205,7 +219,10 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 
 	pos := 0
 	for i := 0; i < paramCount; i++ {
-		tp := x.In(i)
+		// 原始类型
+		typ := x.In(i)
+		// 具体类型，如果是指针，则变换为具体类型
+		tp := typ
 		if tp.Kind() == reflect.Ptr {
 			tp = tp.Elem()
 		}
@@ -233,23 +250,9 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 			kd := param.Type.Kind()
 			pos++
 
-			if kind != kd {
+			if typ.Kind() != kd {
 				// 参数类型不匹配，可能是注册时参数顺序与实际形参不一致
 				return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("No matched kind of param [%v], maybe some errors happend while handlers mapping of controller.", param.Name))
-			}
-
-			// ----------------------------------------------------------------------------------------------------
-			// 判断参数类型是否是 VO 类
-			isVO := kd == reflect.Struct || kd == reflect.Ptr && param.Type.Elem().Kind() == reflect.Struct
-			if isVO {
-				// 装配VO模型
-				temp, ex := getVOParam(request, param.Type)
-				if ex != nil {
-					return nil, ex
-				}
-				// 添加到参数列表
-				args = append(args, temp)
-				continue
 			}
 
 			// ----------------------------------------------------------------------------------------------------
@@ -295,25 +298,58 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 				bs := util.RecycleRequestBody(request)
 				if bs != nil {
 					var arg interface{}
-					switch kind {
+					switch kd {
 					case reflect.Map:
 						arg = reflect.MakeMap(tp).Interface()
 						break
 					case reflect.Slice:
 						arg = reflect.MakeSlice(tp, 0, 0).Interface()
 						break
+					case reflect.Array:
+						arg = reflect.New(reflect.ArrayOf(0, tp))
+						break
 					case reflect.Struct:
 						arg = reflect.New(tp).Interface()
 						break
+					case reflect.Ptr:
+						arg = reflect.New(tp).Interface()
+						break
 					}
-					err := json.Unmarshal(bs, &arg)
+
+					// json 解码
+					err := json.Unmarshal(bs, arg)
 					if err != nil {
 						gog.Error(err)
 						continue
 					}
-					// 添加到参数列表
-					args = append(args, reflect.ValueOf(arg))
+
+					if kd == reflect.Struct {
+						// 如果接收的是 struct 类型，需要从指针中获取到 struct
+						// 添加到参数列表
+						args = append(args, reflect.ValueOf(arg).Elem())
+					} else {
+						// 添加到参数列表
+						args = append(args, reflect.ValueOf(arg))
+					}
 				}
+				continue
+			}
+
+			// ----------------------------------------------------------------------------------------------------
+			// 判断参数类型是否是 VO 类
+			if kind == reflect.Struct {
+				temp := reflect.New(tp)
+				if kd == reflect.Struct {
+					temp = temp.Elem()
+				}
+
+				// 装配VO模型
+				temp, ex := getVOParam(request, temp.Interface())
+				if ex != nil {
+					return nil, ex
+				}
+				// 添加到参数列表
+				args = append(args, temp)
 				continue
 			}
 
@@ -357,17 +393,31 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 }
 
 // getVOParam 自动填充 VO 参数
-func getVOParam(request *http.Request, tp reflect.Type) (reflect.Value, *common.HTTPError) {
-	vof := reflect.ValueOf(reflect.New(tp))
-	count := vof.Type().NumField()
+func getVOParam(request *http.Request, value interface{}) (reflect.Value, *common.HTTPError) {
+	vof := reflect.ValueOf(value)
+	// 临时变量，便于从指针转换为 struct
+	temp := vof
+	if temp.Kind() == reflect.Ptr {
+		temp = temp.Elem()
+	}
+	tp := temp.Type()
+	count := tp.NumField()
 	for i := 0; i < count; i++ {
 		field := tp.Field(i)
-		temp, ex := getVOParamValueByField(request, field)
+		val, ex := getVOParamValueByField(request, field)
 		if ex != nil {
-			return temp, ex
+			return val, ex
 		}
-		utils.FieldSet(vof.Field(i), temp)
+		if vof.Kind() == reflect.Ptr {
+			// 如果 对象 是 指针，则可以直接设置字段值
+			utils.FieldSet(temp.Field(i), val)
+		} else {
+			// 否则需要 获取到 对象的指针，再设置值
+			// TODO
+			utils.FieldSet(reflect.NewAt(temp.Field(i).Type(), unsafe.Pointer(temp.Field(i).UnsafeAddr())).Elem(), val)
+		}
 	}
+	// 返回原始 数据
 	return vof, nil
 }
 
@@ -395,7 +445,7 @@ func getVOParamValueByField(request *http.Request, field reflect.StructField) (r
 	if temp == "" && required {
 		return reflect.ValueOf(nil), common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is nested, but no value received.", name))
 	}
-	return reflect.ValueOf(temp), nil
+	return util.StringToValue(field.Type.Kind(), temp), nil
 }
 
 // getHeaderParam 从请求头中获取参数

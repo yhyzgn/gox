@@ -66,7 +66,10 @@ func (sp *Ship) Mapping() *Mapper {
 
 	pos := 0
 	for i := 0; i < paramCount; i++ {
-		tp := x.In(i)
+		// 原始类型
+		typ := x.In(i)
+		// 具体类型，如果是指针，则变换为具体类型
+		tp := typ
 		if tp.Kind() == reflect.Ptr {
 			tp = tp.Elem()
 		}
@@ -85,7 +88,7 @@ func (sp *Ship) Mapping() *Mapper {
 				// http.Request
 				continue
 			}
-			gog.FatalF("Unsupported argument [%v] of function [%v]", tp, v)
+			gog.FatalF("Unsupported argument [%v] of function [%v]", typ, v)
 		}
 
 		if pos >= len(sp.params) {
@@ -93,7 +96,7 @@ func (sp *Ship) Mapping() *Mapper {
 		}
 
 		// 映射 Type
-		sp.params[pos].Type = tp
+		sp.params[pos].Type = typ
 		pos++
 	}
 
@@ -111,7 +114,10 @@ func (sp *Ship) resolvePath() string {
 		pref = "/" + pref
 	}
 
-	if !strings.HasPrefix(path, "/") {
+	// 如果 handler 的 path 为 / ，则表示 controller 中的默认路径
+	if path == "/" {
+		path = ""
+	} else if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
 
@@ -138,14 +144,14 @@ func (sp *Ship) Header(name string) *Ship {
 	return sp
 }
 
-// Param 注册普通参数，不可空
-func (sp *Ship) Param(name string) *Ship {
+// Required 注册普通参数，必需参数
+func (sp *Ship) Required(name string) *Ship {
 	sp.params = append(sp.params, common.NewParam(name, true, false, false, false))
 	return sp
 }
 
-// ParamNil 注册普通参数，可空
-func (sp *Ship) ParamNil(name string) *Ship {
+// Param 注册普通参数，可空
+func (sp *Ship) Param(name string) *Ship {
 	sp.params = append(sp.params, common.NewParam(name, false, false, false, false))
 	return sp
 }

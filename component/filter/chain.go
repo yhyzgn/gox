@@ -94,6 +94,8 @@ func (fc *Chain) DoFilter(writer http.ResponseWriter, request *http.Request) {
 			filter.DoFilter(writer, request, fc)
 		} else {
 			gog.InfoF("The request path [%v] has not matched filter path [%v]", request.URL.Path, path)
+			// 匹配不到过滤器，则递归回当前链，继续下一次匹配
+			fc.DoFilter(writer, request)
 		}
 	} else if path == request.URL.Path {
 		// 严格匹配，只有路径完全相同才走过滤器
@@ -101,5 +103,7 @@ func (fc *Chain) DoFilter(writer http.ResponseWriter, request *http.Request) {
 		filter.DoFilter(writer, request, fc)
 	} else {
 		gog.InfoF("The request path [%v] has not matched filter path [%v]", request.URL.Path, path)
+		// 匹配不到过滤器，则递归回当前链，继续下一次匹配
+		fc.DoFilter(writer, request)
 	}
 }

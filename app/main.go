@@ -21,11 +21,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox"
-	"github.com/yhyzgn/gox/simple/controller"
+	"github.com/yhyzgn/gox/app/api/controller"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 const (
@@ -42,9 +47,28 @@ func main() {
 		Handler: handler,
 	}
 
+	go func() {
+		exit := make(chan os.Signal, 1)
+		signal.Notify(exit, os.Interrupt, syscall.SIGTERM)
+		<-exit
+
+		gog.Info("收到关闭信号，正在关闭 GoX 服务 ...")
+		ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+		defer cancel()
+
+		err := server.Shutdown(ctx)
+		if err != nil {
+			gog.ErrorF("GoX 关闭错误 【{}】", err)
+		}
+	}()
+
 	gog.InfoF("GoX 启动于端口 【%d】", port)
 	err := server.ListenAndServe()
 	if err != nil {
+		if err == http.ErrServerClosed {
+			gog.Info("GoX 服务已安全退出！")
+			return
+		}
 		gog.Error(err)
 	}
 }
@@ -52,5 +76,6 @@ func main() {
 func initWeb(r *gox.GoX) {
 	r.Configure(NewConfig())
 
-	r.Mapping("/api/hello", new(controller.HelloController))
+	r.Mapping("/api/normal", new(controller.NormalController))
+	r.Mapping("/api/param", new(controller.ParamController))
 }
