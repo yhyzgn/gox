@@ -22,6 +22,7 @@ package util
 
 import (
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 )
@@ -73,4 +74,23 @@ func GetPathVariableIndex(name string, path string) int {
 		}
 	}
 	return -1
+}
+
+func MatchedRequestByPrefixPath(request *http.Request, prefix string) bool {
+	if reg, e := regexp.Compile("/\\*+$"); e == nil && reg.MatchString(prefix) {
+		pattern := reg.ReplaceAllString(prefix, "/.+?")
+		if matched, err := regexp.MatchString("^"+pattern+"$", request.URL.Path); matched && err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func IsExcludedRequest(request *http.Request, excludes map[string]bool) (excluded bool) {
+	for exclude, _ := range excludes {
+		if exclude == request.URL.Path || MatchedRequestByPrefixPath(request, exclude) {
+			excluded = true
+		}
+	}
+	return
 }

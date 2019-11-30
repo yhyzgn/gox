@@ -26,6 +26,7 @@ import "github.com/yhyzgn/gog"
 type Register struct {
 	interceptors []Interceptor
 	pathMap      map[int]string
+	excludes     map[string]bool
 }
 
 // NewRegister 新的注册器
@@ -33,6 +34,7 @@ func NewRegister() *Register {
 	return &Register{
 		interceptors: make([]Interceptor, 0),
 		pathMap:      make(map[int]string),
+		excludes:     make(map[string]bool),
 	}
 }
 
@@ -47,6 +49,21 @@ func (ir *Register) AddInterceptor(path string, interceptor Interceptor) *Regist
 	ir.pathMap[len(ir.interceptors)-1] = path
 	gog.InfoF("The Interceptor [%v] registered.", path)
 	return ir
+}
+
+// Exclude 添加排除路径
+//
+// 支持 前缀匹配 & 严格匹配
+func (ir *Register) Exclude(path string) *Register {
+	if !ir.excludes[path] {
+		ir.excludes[path] = true
+	}
+	return ir
+}
+
+// GetExcludes 获取那些被排除的路径
+func (ir *Register) GetExcludes() map[string]bool {
+	return ir.excludes
 }
 
 // Iterate 遍历所有拦截器，并执行相应回到操作

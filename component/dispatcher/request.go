@@ -117,41 +117,40 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	gog.InfoF("Params of request path [{}] are [{}], matched router [{}] of params [{}]", request.URL.Path, util.FormatRealArgsValue(args), hw.Path, util.FormatHandlerArgs(hw.Params))
 
 	// 处理前，执行拦截器 PreHandle() 方法
-	if rd.register != nil {
-		pass, path := rd.register.Iterate(func(index int, path string, interceptor interceptor.Interceptor) (skip, passed bool) {
+	if rd.register != nil && !util.IsExcludedRequest(request, rd.register.GetExcludes()) {
+		passed, path := rd.register.Iterate(func(index int, path string, interceptor interceptor.Interceptor) (skipped, passed bool) {
 			// 匹配 path，未匹配到的直接跳过
-			defer func() {
-				if skip {
-					gog.InfoF("The request [%v] has skipped by interceptor [%v].", request.URL.Path, path)
-				} else if passed {
-					gog.InfoF("The request [%v] has passed by interceptor [%v].", request.URL.Path, path)
-				} else {
-					gog.InfoF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
-				}
-			}()
 			if path == "/" {
 				// 所有请求
-				return false, interceptor.PreHandle(writer, request, handler)
-			} else if reg, e := regexp.Compile("/\\*+$"); e == nil && reg.MatchString(path) {
-				// 前缀匹配
-				pattern := reg.ReplaceAllString(path, "/.+?")
-				if matched, err := regexp.MatchString("^"+pattern+"$", request.URL.Path); matched && err == nil {
-					// 前缀匹配成功，执行拦截器
-					return false, interceptor.PreHandle(writer, request, handler)
-				}
-				// 匹配不成功的直接跳过
-				return true, true
+				skipped = false
+				passed = interceptor.PreHandle(writer, request, handler)
 			} else if path == request.URL.Path {
 				// 严格匹配，只有路径完全相同才走过滤器
-				return false, interceptor.PreHandle(writer, request, handler)
+				skipped = false
+				passed = interceptor.PreHandle(writer, request, handler)
+			} else if util.MatchedRequestByPrefixPath(request, path) {
+				// 前缀匹配成功，执行拦截器
+				skipped = false
+				passed = interceptor.PreHandle(writer, request, handler)
 			} else {
 				// 跳过
-				return true, true
+				skipped = true
+				passed = false
 			}
+
+			if skipped {
+				gog.InfoF("The request [%v] has skipped by interceptor [%v].", request.URL.Path, path)
+			} else if passed {
+				gog.InfoF("The request [%v] has passed by interceptor [%v].", request.URL.Path, path)
+			} else {
+				gog.InfoF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
+			}
+
+			return
 		})
 
 		// 拦截器不通过
-		if !pass {
+		if !passed {
 			gog.InfoF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
 			return
 		}
@@ -173,7 +172,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	}
 
 	// 处理完成后，执行拦截器的 AfterHandle() 方法
-	if rd.register != nil {
+	if rd.register != nil && !util.IsExcludedRequest(request, rd.register.GetExcludes()) {
 		rd.register.ReverseIterate(func(index int, path string, interceptor interceptor.Interceptor) {
 			// 匹配 path，未匹配到的直接跳过
 			if path == "/" {

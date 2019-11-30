@@ -26,7 +26,6 @@ import (
 	"github.com/yhyzgn/gox/component/dispatcher"
 	"github.com/yhyzgn/gox/util"
 	"net/http"
-	"regexp"
 )
 
 // Chain 过滤器链
@@ -34,13 +33,15 @@ type Chain struct {
 	filters    []Filter
 	pathMap    map[int]string
 	dispatcher dispatcher.Dispatcher
+	excludes   map[string]bool
 }
 
 // NewChain 一个新链
 func NewChain() *Chain {
 	return &Chain{
-		filters: make([]Filter, 0),
-		pathMap: make(map[int]string),
+		filters:  make([]Filter, 0),
+		pathMap:  make(map[int]string),
+		excludes: make(map[string]bool),
 	}
 }
 
@@ -63,9 +64,26 @@ func (fc *Chain) AddFilter(path string, filter Filter) *Chain {
 	return fc
 }
 
+// Exclude 添加排除路径
+//
+// 支持 前缀匹配 & 严格匹配
+func (fc *Chain) Exclude(path string) *Chain {
+	if !fc.excludes[path] {
+		fc.excludes[path] = true
+	}
+	return fc
+}
+
 // DoFilter 逐个执行过滤器
 // 执行顺序 为 添加顺序
 func (fc *Chain) DoFilter(writer http.ResponseWriter, request *http.Request) {
+	// 先判断这些请求是否已经被排除在 过滤器 外
+	if util.IsExcludedRequest(request, fc.excludes) {
+		gog.InfoF("The request [%v] has been excluded", request.URL.Path)
+		fc.dispatcher.Dispatch(writer, request)
+		return
+	}
+
 	// 获取到当前请求中的过滤器 索引
 	index := util.GetRequestAttribute(request, common.RequestFilterIndexName).(int)
 	// 实时更新 索引
@@ -83,26 +101,18 @@ func (fc *Chain) DoFilter(writer http.ResponseWriter, request *http.Request) {
 	// 匹配 path，未匹配到的 filter 直接跳过
 	if path == "/" {
 		// 所有请求
-		gog.InfoF("The request path [%v] matched filter path [/]", request.URL.Path)
+		gog.InfoF("The request [%v] has been passed by filter [/]", request.URL.Path)
 		filter.DoFilter(writer, request, fc)
-	} else if reg, e := regexp.Compile("/\\*+$"); e == nil && reg.MatchString(path) {
-		// 前缀匹配
-		pattern := reg.ReplaceAllString(path, "/.+?")
-		if matched, err := regexp.MatchString("^"+pattern+"$", request.URL.Path); matched && err == nil {
-			// 前缀匹配成功，走过滤器
-			gog.InfoF("The request path [%v] matched filter path [%v]", request.URL.Path, path)
-			filter.DoFilter(writer, request, fc)
-		} else {
-			gog.InfoF("The request path [%v] has not matched filter path [%v]", request.URL.Path, path)
-			// 匹配不到过滤器，则递归回当前链，继续下一次匹配
-			fc.DoFilter(writer, request)
-		}
 	} else if path == request.URL.Path {
 		// 严格匹配，只有路径完全相同才走过滤器
-		gog.InfoF("The request path [%v] matched filter path [%v]", request.URL.Path, path)
+		gog.InfoF("The request [%v] has been passed by filter [%v]", request.URL.Path, path)
+		filter.DoFilter(writer, request, fc)
+	} else if util.MatchedRequestByPrefixPath(request, path) {
+		// 前缀匹配成功，走过滤器
+		gog.InfoF("The request [%v] has been passed by filter [%v]", request.URL.Path, path)
 		filter.DoFilter(writer, request, fc)
 	} else {
-		gog.InfoF("The request path [%v] has not matched filter path [%v]", request.URL.Path, path)
+		gog.InfoF("The request [%v] has been skipped by filter [%v]", request.URL.Path, path)
 		// 匹配不到过滤器，则递归回当前链，继续下一次匹配
 		fc.DoFilter(writer, request)
 	}

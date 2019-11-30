@@ -74,7 +74,7 @@ func (w *Wires) Mapping(path string, handler common.Handler, methods []common.Me
 
 	pc := reflect.Value(handler).Pointer()
 	name := util.ReplaceAll(runtime.FuncForPC(pc).Name(), "-fm", util.FormatHandlerArgs(wire.Params))
-	gog.InfoF("Mapped [%v-->\t%v] with http method %v", util.FillSuffix(path, " ", 40), name, methods)
+	gog.InfoF("Mapped [%v-->\t%v] with http methods %v", util.FillSuffix(path, " ", 40), name, methods)
 }
 
 // Get 获取一条映射关系
