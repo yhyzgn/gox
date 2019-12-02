@@ -24,6 +24,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/yhyzgn/gog"
+	"github.com/yhyzgn/gog/level"
+	"github.com/yhyzgn/gog/writer"
 	"github.com/yhyzgn/gox"
 	"github.com/yhyzgn/gox/app/api/controller"
 	"net/http"
@@ -36,6 +38,19 @@ import (
 const (
 	port = 8080
 )
+
+func init() {
+	env := os.Getenv("ENV")
+	if env == "prod" {
+		// 生产环境
+		gog.AddWriter(writer.NewJSONWriter())
+		gog.Level(level.INFO)
+	} else {
+		// 开发环境
+		gog.AddWriter(writer.NewConsoleWriter())
+	}
+	gog.Async(true)
+}
 
 func main() {
 	handler := gox.NewGoX()

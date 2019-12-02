@@ -139,11 +139,11 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 			}
 
 			if skipped {
-				gog.InfoF("The request [%v] has skipped by interceptor [%v].", request.URL.Path, path)
+				gog.DebugF("The request [%v] has skipped by interceptor [%v].", request.URL.Path, path)
 			} else if passed {
-				gog.InfoF("The request [%v] has passed by interceptor [%v].", request.URL.Path, path)
+				gog.DebugF("The request [%v] has passed by interceptor [%v].", request.URL.Path, path)
 			} else {
-				gog.InfoF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
+				gog.DebugF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
 			}
 
 			return

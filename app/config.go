@@ -37,7 +37,8 @@ func NewConfig() *Config {
 func (c *Config) ConfigFilter(chain *filter.Chain) {
 	chain.
 		AddFilter("/", testFilter.NewTestFilter()).
-		AddFilter("/api/*", testFilter.NewLogFilter())
+		AddFilter("/api/*", testFilter.NewLogFilter()).
+		Exclude("/api/param/vo")
 }
 
 func (c *Config) ConfigInterceptor(register *interceptor.Register) {
