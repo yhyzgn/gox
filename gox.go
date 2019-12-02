@@ -52,6 +52,14 @@ func init() {
 
 // ServeHTTP 接收处理请求
 func (gx *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	if request.RequestURI == "*" {
+		if request.ProtoAtLeast(1, 1) {
+			util.SetResponseWriterHeader(writer, "Connection", "closed")
+		}
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	// 每个请求 过滤器 开始标记
 	request = util.SetRequestAttribute(request, common.RequestFilterIndexName, 0)
 
