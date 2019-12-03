@@ -22,25 +22,25 @@ package core
 
 import (
 	"fmt"
-	"github.com/yhyzgn/gog"
-	"github.com/yhyzgn/gox/common"
-	"github.com/yhyzgn/gox/util"
-	"github.com/yhyzgn/gox/wire"
 	"net/http"
 	"reflect"
 	"strings"
+
+	"github.com/yhyzgn/gog"
+	"github.com/yhyzgn/gox/common"
+	"github.com/yhyzgn/gox/wire"
 )
 
 // Ship 路由关系映射器
 type Ship struct {
 	mapper      *Mapper            // 所属的 处理器映射器
-	path        string             // 配置的 path 路径
+	paths       []string           // 配置的 path 路径
 	handlerFunc common.HandlerFunc // 配置的 处理器
 	methods     []common.Method    // http 请求方法列表
 	params      []*common.Param    // 配置的参数列表
 }
 
-// 完成一条 处理器关系 映射
+// Mapping 完成一条 处理器关系 映射
 func (sp *Ship) Mapping() *Mapper {
 	if sp.methods == nil {
 		sp.methods = make([]common.Method, 0)
@@ -111,8 +111,11 @@ func (sp *Ship) Mapping() *Mapper {
 		pos++
 	}
 	sp.params = tempParams
+
 	// 注册 每一条映射关系
-	wire.Instance.Mapping(sp.resolvePath(), common.Handler(v), sp.methods, sp.params)
+	for _, path := range sp.resolvePath() {
+		wire.Instance.Mapping(path, common.Handler(v), sp.methods, sp.params)
+	}
 	return sp.mapper
 }
 
@@ -144,22 +147,25 @@ func (sp *Ship) hasResponseWriterAndRequest(tp reflect.Type) (hasWriter bool, ha
 }
 
 // resolvePath 用 / 处理 path，构建标准 url path
-func (sp *Ship) resolvePath() string {
+func (sp *Ship) resolvePath() []string {
 	pref := sp.mapper.path
-	path := sp.path
 
 	if !strings.HasPrefix(pref, "/") {
 		pref = "/" + pref
 	}
 
-	// 如果 handler 的 path 为 / ，则表示 controller 中的默认路径
-	if path == "/" {
-		path = ""
-	} else if !strings.HasPrefix(path, "/") {
-		path = "/" + path
+	paths := make([]string, 0)
+	for _, path := range sp.paths {
+		// 如果 handler 的 path 为 / ，则表示 controller 中的默认路径
+		if path == "/" {
+			path = ""
+		} else if !strings.HasPrefix(path, "/") {
+			path = "/" + path
+		}
+		paths = append(paths, strings.ReplaceAll(fmt.Sprintf("%s%s", pref, path), "//", "/"))
 	}
 
-	return util.ReplaceAll(fmt.Sprintf("%s%s", pref, path), "//", "/")
+	return paths
 }
 
 // HandlerFunc 配置处理器

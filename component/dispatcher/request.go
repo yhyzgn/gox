@@ -23,6 +23,12 @@ package dispatcher
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"reflect"
+	"regexp"
+	"runtime"
+	"strings"
+
 	"github.com/yhyzgn/ghost/utils"
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
@@ -31,11 +37,6 @@ import (
 	"github.com/yhyzgn/gox/resolver"
 	"github.com/yhyzgn/gox/util"
 	"github.com/yhyzgn/gox/wire"
-	"net/http"
-	"reflect"
-	"regexp"
-	"runtime"
-	"strings"
 )
 
 // RequestDispatcher 请求分发器-实现类
@@ -200,7 +201,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseWriter, request *http.Request, isRESTful bool) ([]reflect.Value, *common.HTTPError) {
 	path := request.URL.Path
 	handler := reflect.Value(hw.Handler)
-	handlerName := util.ReplaceAll(runtime.FuncForPC(handler.Pointer()).Name(), "-fm", util.FormatHandlerArgs(hw.Params))
+	handlerName := strings.ReplaceAll(runtime.FuncForPC(handler.Pointer()).Name(), "-fm", util.FormatHandlerArgs(hw.Params))
 
 	var pathVariables []string
 	if isRESTful {

@@ -22,11 +22,13 @@ package resolver
 
 import (
 	"fmt"
-	"github.com/yhyzgn/gox/util"
-	"github.com/yhyzgn/gox/wire"
 	"net/http"
 	"reflect"
 	"runtime"
+	"strings"
+
+	"github.com/yhyzgn/gox/util"
+	"github.com/yhyzgn/gox/wire"
 )
 
 // ResultResolver 结果处理器
@@ -54,7 +56,7 @@ func (srr *SimpleResultResolver) Resolve(hw *wire.HandlerWire, values []reflect.
 	path := request.URL.Path
 	handler := reflect.Value(hw.Handler)
 	pc := handler.Pointer()
-	handlerName := util.ReplaceAll(runtime.FuncForPC(pc).Name(), "-fm", "(...)")
+	handlerName := strings.ReplaceAll(runtime.FuncForPC(pc).Name(), "-fm", "(...)")
 
 	if values == nil || len(values) == 0 {
 		// 没有返回值，无需处理

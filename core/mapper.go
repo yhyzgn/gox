@@ -21,8 +21,11 @@
 package core
 
 import (
-	"github.com/yhyzgn/gox/common"
 	"net/http"
+
+	"github.com/yhyzgn/gog"
+
+	"github.com/yhyzgn/gox/common"
 )
 
 // Mapper 处理器映射器
@@ -40,56 +43,60 @@ func NewMapper(path string, ctrl Controller) *Mapper {
 }
 
 // Request 注册一个新的处理器
-func (mp *Mapper) Request(path string) *Ship {
+func (mp *Mapper) Request(paths ...string) *Ship {
+	if paths == nil || len(paths) == 0 {
+		gog.Fatal("The param 'paths' can not be nil, must be '' at least.")
+		return nil
+	}
 	return &Ship{
 		mapper:  mp,
-		path:    path,
+		paths:   paths,
 		methods: make([]common.Method, 0),
 		params:  make([]*common.Param, 0),
 	}
 }
 
 // Get 注册一个 GET 请求的处理器
-func (mp *Mapper) Get(path string) *Ship {
-	return mp.Request(path).Method(http.MethodGet)
+func (mp *Mapper) Get(paths ...string) *Ship {
+	return mp.Request(paths...).Method(http.MethodGet)
 }
 
 // Head 注册一个 HEAD 请求的处理器
-func (mp *Mapper) Head(path string) *Ship {
-	return mp.Request(path).Method(http.MethodHead)
+func (mp *Mapper) Head(paths ...string) *Ship {
+	return mp.Request(paths...).Method(http.MethodHead)
 }
 
 // Post 注册一个 POST 请求的处理器
-func (mp *Mapper) Post(path string) *Ship {
-	return mp.Request(path).Method(http.MethodPost)
+func (mp *Mapper) Post(paths ...string) *Ship {
+	return mp.Request(paths...).Method(http.MethodPost)
 }
 
 // Put 注册一个 PUT 请求的处理器
-func (mp *Mapper) Put(path string) *Ship {
-	return mp.Request(path).Method(http.MethodPut)
+func (mp *Mapper) Put(paths ...string) *Ship {
+	return mp.Request(paths...).Method(http.MethodPut)
 }
 
 // Patch 注册一个 PATCH 请求的处理器
-func (mp *Mapper) Patch(path string) *Ship {
-	return mp.Request(path).Method(http.MethodPatch)
+func (mp *Mapper) Patch(paths ...string) *Ship {
+	return mp.Request(paths...).Method(http.MethodPatch)
 }
 
 // Delete 注册一个 DELETE 请求的处理器
-func (mp *Mapper) Delete(path string) *Ship {
-	return mp.Request(path).Method(http.MethodDelete)
+func (mp *Mapper) Delete(paths ...string) *Ship {
+	return mp.Request(paths...).Method(http.MethodDelete)
 }
 
 // Connect 注册一个 CONNECT 请求的处理器
-func (mp *Mapper) Connect(path string) *Ship {
-	return mp.Request(path).Method(http.MethodConnect)
+func (mp *Mapper) Connect(paths ...string) *Ship {
+	return mp.Request(paths...).Method(http.MethodConnect)
 }
 
 // Options 注册一个 OPTIONS 请求的处理器
-func (mp *Mapper) Options(path string) *Ship {
-	return mp.Request(path).Method(http.MethodOptions)
+func (mp *Mapper) Options(paths ...string) *Ship {
+	return mp.Request(paths...).Method(http.MethodOptions)
 }
 
 // Trace 注册一个 TRACE 请求的处理器
-func (mp *Mapper) Trace(path string) *Ship {
-	return mp.Request(path).Method(http.MethodTrace)
+func (mp *Mapper) Trace(paths ...string) *Ship {
+	return mp.Request(paths...).Method(http.MethodTrace)
 }
