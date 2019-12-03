@@ -37,12 +37,11 @@ func NewConfig() *Config {
 
 func (c *Config) ConfigFilter(chain *filter.Chain) {
 	chain.
-		AddFilter("/", testFilter.NewTestFilter()).
-		AddFilter("/", cors.NewXCorsFilter().AllowedHeaders("Token")).
-		AddFilter("/api/*", testFilter.NewLogFilter()).
+		AddFilters("/", cors.NewXCorsFilter().AllowedHeaders("Token"), testFilter.NewTestFilter()).
+		AddFilters("/api/*", testFilter.NewLogFilter()).
 		Exclude("/api/param/vo")
 }
 
 func (c *Config) ConfigInterceptor(register *interceptor.Register) {
-	register.AddInterceptor("/", testInterceptor.NewTestInterceptor())
+	register.AddInterceptors("/", testInterceptor.NewTestInterceptor())
 }

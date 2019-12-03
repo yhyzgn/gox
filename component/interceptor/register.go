@@ -22,31 +22,41 @@ package interceptor
 
 import "github.com/yhyzgn/gog"
 
+type item struct {
+	path        string
+	interceptor Interceptor
+}
+
 // Register 拦截器注册器
 type Register struct {
-	interceptors []Interceptor
-	pathMap      map[int]string
+	interceptors []item
 	excludes     map[string]bool
 }
 
 // NewRegister 新的注册器
 func NewRegister() *Register {
 	return &Register{
-		interceptors: make([]Interceptor, 0),
-		pathMap:      make(map[int]string),
+		interceptors: make([]item, 0),
 		excludes:     make(map[string]bool),
 	}
 }
 
-// AddInterceptor 添加拦截器
+// AddInterceptors 添加拦截器
 // 添加顺序 即 执行顺序
 // path 匹配方式：
 // 				/		->		所有请求
 //				/xx		->		严格匹配
 //				/xx/*	->		前缀匹配
-func (ir *Register) AddInterceptor(path string, interceptor Interceptor) *Register {
-	ir.interceptors = append(ir.interceptors, interceptor)
-	ir.pathMap[len(ir.interceptors)-1] = path
+func (ir *Register) AddInterceptors(path string, interceptors ...Interceptor) *Register {
+	if path == "" || interceptors == nil || len(interceptors) == 0 {
+		return ir
+	}
+	for _, ipt := range interceptors {
+		ir.interceptors = append(ir.interceptors, item{
+			path:        path,
+			interceptor: ipt,
+		})
+	}
 	gog.InfoF("The Interceptor [%v] registered.", path)
 	return ir
 }
@@ -74,14 +84,14 @@ func (ir *Register) Iterate(iterator func(index int, path string, interceptor In
 			passed bool
 		)
 		for i, item := range ir.interceptors {
-			skip, passed = iterator(i, ir.pathMap[i], item)
+			skip, passed = iterator(i, item.path, item.interceptor)
 			if skip {
 				// 可能 path 不匹配，跳过当前拦截器
 				continue
 			}
 			if !passed {
 				// 拦截器不通过
-				return false, ir.pathMap[i]
+				return false, item.path
 			}
 		}
 	}
@@ -92,7 +102,7 @@ func (ir *Register) Iterate(iterator func(index int, path string, interceptor In
 func (ir *Register) ReverseIterate(iterator func(index int, path string, interceptor Interceptor)) {
 	if iterator != nil {
 		for i := len(ir.interceptors) - 1; i >= 0; i-- {
-			iterator(i, ir.pathMap[i], ir.interceptors[i])
+			iterator(i, ir.interceptors[i].path, ir.interceptors[i].interceptor)
 		}
 	}
 }
