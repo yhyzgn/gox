@@ -21,11 +21,12 @@
 package filter
 
 import (
+	"net/http"
+
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/component/dispatcher"
 	"github.com/yhyzgn/gox/util"
-	"net/http"
 )
 
 // Chain 过滤器链

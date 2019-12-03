@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-26 15:10
 // version: 1.0.0
-// desc   : 
+// desc   :
 
 package main
 
@@ -25,6 +25,7 @@ import (
 	testInterceptor "github.com/yhyzgn/gox/app/interceptor"
 	"github.com/yhyzgn/gox/component/filter"
 	"github.com/yhyzgn/gox/component/interceptor"
+	"github.com/yhyzgn/gox/component/of/filter/cors"
 )
 
 type Config struct {
@@ -37,6 +38,7 @@ func NewConfig() *Config {
 func (c *Config) ConfigFilter(chain *filter.Chain) {
 	chain.
 		AddFilter("/", testFilter.NewTestFilter()).
+		AddFilter("/", cors.NewXCorsFilter().AllowedHeaders("Token")).
 		AddFilter("/api/*", testFilter.NewLogFilter()).
 		Exclude("/api/param/vo")
 }
