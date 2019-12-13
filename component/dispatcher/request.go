@@ -129,7 +129,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 				// 严格匹配，只有路径完全相同才走过滤器
 				skipped = false
 				passed = interceptor.PreHandle(writer, request, handler)
-			} else if util.MatchedRequestByPrefixPath(request, path) {
+			} else if util.MatchedRequestByPathPattern(request, path) {
 				// 前缀匹配成功，执行拦截器
 				skipped = false
 				passed = interceptor.PreHandle(writer, request, handler)

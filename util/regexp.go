@@ -76,11 +76,17 @@ func GetPathVariableIndex(name string, path string) int {
 	return -1
 }
 
-func MatchedRequestByPrefixPath(request *http.Request, prefix string) bool {
-	if reg, e := regexp.Compile("/\\*+$"); e == nil && reg.MatchString(prefix) {
-		pattern := reg.ReplaceAllString(prefix, "/.+?")
-		if matched, err := regexp.MatchString("^"+pattern+"$", request.URL.Path); matched && err == nil {
-			return true
+func MatchedRequestByPathPattern(request *http.Request, pattern string) bool {
+	pattern = strings.ReplaceAll(pattern, ".", "\\.")
+	// 先匹配
+	if reg, e := regexp.Compile("^.*?\\*+?.*$"); e == nil && reg.MatchString(pattern) {
+		// 再替换
+		if reg, e = regexp.Compile("\\*+?"); e == nil && reg.MatchString(pattern) {
+			temp := reg.ReplaceAllString(pattern, ".+?")
+
+			// 匹配 pattern 和 path
+			matched, err := regexp.MatchString("^"+temp+"$", request.URL.Path)
+			return matched && err == nil
 		}
 	}
 	return false
@@ -88,7 +94,7 @@ func MatchedRequestByPrefixPath(request *http.Request, prefix string) bool {
 
 func IsExcludedRequest(request *http.Request, excludes map[string]bool) (excluded bool) {
 	for exclude, _ := range excludes {
-		if exclude == request.URL.Path || MatchedRequestByPrefixPath(request, exclude) {
+		if exclude == request.URL.Path || MatchedRequestByPathPattern(request, exclude) {
 			excluded = true
 		}
 	}
