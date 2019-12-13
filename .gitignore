@@ -12,3 +12,4 @@
 *.out
 
 /go.sum
+*_build_*

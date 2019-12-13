@@ -21,11 +21,14 @@
 package main
 
 import (
+	"net/http"
+
 	testFilter "github.com/yhyzgn/gox/app/filter"
 	testInterceptor "github.com/yhyzgn/gox/app/interceptor"
 	"github.com/yhyzgn/gox/component/filter"
 	"github.com/yhyzgn/gox/component/interceptor"
 	"github.com/yhyzgn/gox/component/of/filter/cors"
+	"github.com/yhyzgn/gox/context"
 )
 
 type Config struct {
@@ -33,6 +36,14 @@ type Config struct {
 
 func NewConfig() *Config {
 	return new(Config)
+}
+
+func (c *Config) Context(ctx *context.GoXContext) {
+	ctx.
+		SetStaticDir("static").
+		SetNotFoundHandler(func(writer http.ResponseWriter, request *http.Request) {
+			http.Error(writer, "你的请求被外星人绑架啦~", http.StatusNotFound)
+		})
 }
 
 func (c *Config) ConfigFilter(chain *filter.Chain) {

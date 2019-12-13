@@ -22,9 +22,10 @@ package context
 
 import (
 	"fmt"
-	"github.com/yhyzgn/ghost/config"
 	"net/http"
 	"sync"
+
+	"github.com/yhyzgn/ghost/config"
 )
 
 // GoXContext GoX 上下文
@@ -33,8 +34,9 @@ type GoXContext struct {
 	wares             map[string]interface{}   // 一些组件
 	onceMap           map[string]bool          // 一次性组件
 	errorHandlers     map[int]http.HandlerFunc // 错误处理器，每个错误码对应一个处理器
-	NotFound          http.HandlerFunc         // 404错误处理器
-	UnsupportedMethod http.HandlerFunc         // 方法不支持错误处理器
+	staticDir         string                   // 静态资源文件夹路径
+	notFound          http.HandlerFunc         // 404错误处理器
+	unSupportedMethod http.HandlerFunc         // 方法不支持错误处理器
 }
 
 var (
@@ -49,8 +51,8 @@ func init() {
 			wares:         make(map[string]interface{}),
 			onceMap:       make(map[string]bool),
 			errorHandlers: make(map[int]http.HandlerFunc),
-			NotFound:      http.NotFound,
-			UnsupportedMethod: func(writer http.ResponseWriter, request *http.Request) {
+			notFound:      http.NotFound,
+			unSupportedMethod: func(writer http.ResponseWriter, request *http.Request) {
 				http.Error(writer, fmt.Sprintf("Unsupported http method [%v].", request.Method), http.StatusMethodNotAllowed)
 			},
 		}
@@ -89,10 +91,43 @@ func (c *GoXContext) GetWare(name string) interface{} {
 	return c.wares[name]
 }
 
+// SetStaticDir 设置静态资源文件夹
+func (c *GoXContext) SetStaticDir(dir string) *GoXContext {
+	c.staticDir = dir
+	return c
+}
+
+// SetNotFoundHandler 设置 404 错误处理器
+func (c *GoXContext) SetNotFoundHandler(handler http.HandlerFunc) *GoXContext {
+	c.notFound = handler
+	return c
+}
+
+// SetUnSupportMethodHandler 设置 请求方法 错误处理器
+func (c *GoXContext) SetUnSupportMethodHandler(handler http.HandlerFunc) *GoXContext {
+	c.unSupportedMethod = handler
+	return c
+}
+
 // AddErrorHandler 添加错误码处理器
 func (c *GoXContext) AddErrorHandler(statusCode int, handler http.HandlerFunc) *GoXContext {
 	c.errorHandlers[statusCode] = handler
 	return c
+}
+
+// GetStaticDir 获取静态资源文件夹
+func (c *GoXContext) GetStaticDir() string {
+	return c.staticDir
+}
+
+// GetNotFoundHandler 获取 404 错误处理器
+func (c *GoXContext) GetNotFoundHandler() http.HandlerFunc {
+	return c.notFound
+}
+
+// GetUnSupportMethodHandler 获取 请求方法 错误处理器
+func (c *GoXContext) GetUnSupportMethodHandler() http.HandlerFunc {
+	return c.notFound
 }
 
 // GetErrorHandler 获取错误码处理器

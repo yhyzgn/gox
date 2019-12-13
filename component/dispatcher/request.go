@@ -83,8 +83,19 @@ func (rd *RequestDispatcher) Dispatch(writer http.ResponseWriter, request *http.
 		}
 	}
 
+	// 如果路由未找到，可能是静态资源
+	if reqPath == "" {
+		// 默认首页
+		reqPath = "index.html"
+	}
+	filename := strings.ReplaceAll(context.Current().GetStaticDir()+"/"+reqPath, "//", "/")
+	if util.FileExist(filename) {
+		http.ServeFile(writer, request, filename)
+		return
+	}
+
 	// 匹配不到，就只能 404 啦~
-	context.Current().NotFound(writer, request)
+	context.Current().GetNotFoundHandler()(writer, request)
 }
 
 // doDispatch 具体的请求分发操作
@@ -92,7 +103,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	md := VerifyMethod(hw, request.Method)
 	if !md {
 		// 不支持的 http 方法
-		context.Current().UnsupportedMethod(writer, request)
+		context.Current().GetUnSupportMethodHandler()(writer, request)
 		return
 	}
 

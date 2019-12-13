@@ -16,23 +16,24 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-25 14:47
 // version: 1.0.0
-// desc   : 
+// desc   :
 
 package main
 
 import (
 	"context"
 	"fmt"
-	"github.com/yhyzgn/gog"
-	"github.com/yhyzgn/gog/level"
-	"github.com/yhyzgn/gog/writer"
-	"github.com/yhyzgn/gox"
-	"github.com/yhyzgn/gox/app/api/controller"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/yhyzgn/gog"
+	"github.com/yhyzgn/gog/level"
+	"github.com/yhyzgn/gog/writer"
+	"github.com/yhyzgn/gox"
+	"github.com/yhyzgn/gox/app/api/controller"
 )
 
 const (
@@ -89,8 +90,8 @@ func main() {
 }
 
 func initWeb(r *gox.GoX) {
-	r.Configure(NewConfig())
-
-	r.Mapping("/api/normal", new(controller.NormalController))
-	r.Mapping("/api/param", new(controller.ParamController))
+	r.
+		Configure(NewConfig()).
+		Mapping("/api/normal", new(controller.NormalController)).
+		Mapping("/api/param", new(controller.ParamController))
 }

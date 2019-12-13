@@ -14,26 +14,19 @@
 
 // author : 颜洪毅
 // e-mail : yhyzgn@gmail.com
-// time   : 2019-11-26 11:51
+// time   : 2019-12-13 11:02
 // version: 1.0.0
-// desc   : Web配置接口
+// desc   : 文件工具类
 
-package configure
+package util
 
-import (
-	"github.com/yhyzgn/gox/component/filter"
-	"github.com/yhyzgn/gox/component/interceptor"
-	"github.com/yhyzgn/gox/context"
-)
+import "os"
 
-// WebConfigure Web配置接口
-type WebConfigure interface {
-	// Context 配置 Context
-	Context(ctx *context.GoXContext)
-
-	// ConfigFilter 注册过滤器
-	ConfigFilter(chain *filter.Chain)
-
-	// ConfigInterceptor 注册拦截器
-	ConfigInterceptor(register *interceptor.Register)
+// FileExist 判断文件是否存在
+func FileExist(filename string) bool {
+	_, err := os.Stat(filename)
+	if err == nil || os.IsExist(err) {
+		return true
+	}
+	return false
 }

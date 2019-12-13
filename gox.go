@@ -101,15 +101,21 @@ func (gx *GoX) Configure(configure configure.WebConfigure) *GoX {
 	return gx
 }
 
+// StaticDir 静态资源文件夹
+func (gx *GoX) StaticDir(dir string) *GoX {
+	context.Current().SetStaticDir(dir)
+	return gx
+}
+
 // NotFoundHandler 配置 404 处理器
 func (gx *GoX) NotFoundHandler(handler http.HandlerFunc) *GoX {
-	context.Current().NotFound = handler
+	context.Current().SetNotFoundHandler(handler)
 	return gx
 }
 
 // UnsupportedMethodHandler 配置 方法不支持 处理器
 func (gx *GoX) UnsupportedMethodHandler(handler http.HandlerFunc) *GoX {
-	context.Current().UnsupportedMethod = handler
+	context.Current().SetUnSupportMethodHandler(handler)
 	return gx
 }
 
@@ -141,6 +147,9 @@ func (gx *GoX) Mapping(path string, ctrls ...core.Controller) *GoX {
 // config 触发配置装载
 func (gx *GoX) config(configure configure.WebConfigure) {
 	if configure != nil {
+		// 配置 Context
+		configure.Context(context.Current())
+
 		// 注册过滤器
 		configure.ConfigFilter(util.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain))
 
