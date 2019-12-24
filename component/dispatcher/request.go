@@ -126,7 +126,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	// 再调用参数处理器处理
 	argumentResolver.Resolve(args, writer, request, handler)
 
-	gog.InfoF("Params of request path [{}] are [{}], matched router [{}] of params [{}]", request.URL.Path, util.FormatRealArgsValue(args), hw.Path, util.FormatHandlerArgs(hw.Params))
+	gog.DebugF("Params of request path [{}] are [{}], matched router [{}] of params [{}]", request.URL.Path, util.FormatRealArgsValue(args), hw.Path, util.FormatHandlerArgs(hw.Params))
 
 	// 处理前，执行拦截器 PreHandle() 方法
 	if rd.register != nil && !util.IsExcludedRequest(request, rd.register.GetExcludes()) {
@@ -171,16 +171,21 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	// 拦截器通过后，将请求交由 处理器 处理
 	// 已经获取到参数列表，执行方法即可
 	results := handler.Call(args)
-	if results == nil || len(results) == 0 {
+	noResult := results == nil || len(results) == 0
+	var (
+		res reflect.Value
+		err error
+	)
+	if noResult {
 		// 无返回值
 		gog.InfoF("The request [{}] responded, and the handler needn't return any value.", request.URL.Path)
-		return
-	}
-	// 响应结果交由 结果处理器 处理
-	res, err := resultResolver.Resolve(hw, results, writer, request)
-	// 如果有错误，就响应错误信息
-	if err != nil {
-		res = reflect.ValueOf(err)
+	} else {
+		// 响应结果交由 结果处理器 处理
+		res, err = resultResolver.Resolve(hw, results, writer, request)
+		// 如果有错误，就响应错误信息
+		if err != nil {
+			res = reflect.ValueOf(err)
+		}
 	}
 
 	// 处理完成后，执行拦截器的 AfterHandle() 方法
@@ -204,8 +209,10 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 		})
 	}
 
-	// 拦截器通过后，响应处理结果
-	resultResolver.Response(res, writer)
+	if !noResult {
+		// 拦截器通过后，响应处理结果
+		resultResolver.Response(res, writer)
+	}
 }
 
 // resolve 初步处理参数
