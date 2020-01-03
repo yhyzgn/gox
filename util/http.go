@@ -16,7 +16,7 @@
 // e-mail : yhyzgn@gmail.com
 // time   : 2019-11-24 9:01 下午
 // version: 1.0.0
-// desc   : 
+// desc   :
 
 package util
 
@@ -25,12 +25,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/yhyzgn/gox/common"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"reflect"
 	"strings"
+
+	"github.com/yhyzgn/gox/common"
 )
 
 // RecycleRequestBody 复用 request.Body
@@ -197,4 +198,15 @@ func FormFiles(request *http.Request, name string) ([]multipart.File, []*multipa
 		}
 	}
 	return nil, nil, http.ErrMissingFile
+}
+
+// IsCorsRequest 是否是跨域请求
+func IsCorsRequest(r *http.Request) bool {
+	return r.Header.Get("Origin") != ""
+}
+
+// ShouldAbortRequest 是否应该终止跨域请求
+func ShouldAbortRequest(r *http.Request) bool {
+	// Access-Control-Request-Method 出现于 Options 预检请求头中
+	return IsCorsRequest(r) && r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != ""
 }

@@ -75,8 +75,8 @@ func (c *XCorsFilter) DoFilter(writer http.ResponseWriter, request *http.Request
 	util.SetResponseWriterHeader(writer, "Access-Control-Allow-Credentials", strconv.FormatBool(c.credential))
 	util.SetResponseWriterHeader(writer, "Access-Control-Max-Age", strconv.FormatInt(c.maxAge, 3600))
 
-	// 屏蔽 OPTIONS 请求
-	if request.Method == http.MethodOptions {
+	// 屏蔽 跨域条件下的 OPTIONS 请求
+	if util.ShouldAbortRequest(request) {
 		writer.WriteHeader(http.StatusNoContent)
 		return
 	}
