@@ -73,7 +73,7 @@ func (c *XCorsFilter) DoFilter(writer http.ResponseWriter, request *http.Request
 		util.SetResponseWriterHeader(writer, "Access-Control-Expose-Headers", strings.Join(c.exposes, ", "))
 	}
 	util.SetResponseWriterHeader(writer, "Access-Control-Allow-Credentials", strconv.FormatBool(c.credential))
-	util.SetResponseWriterHeader(writer, "Access-Control-Max-Age", strconv.FormatInt(c.maxAge, 3600))
+	util.SetResponseWriterHeader(writer, "Access-Control-Max-Age", strconv.FormatInt(c.maxAge, 10))
 
 	// 屏蔽 跨域条件下的 OPTIONS 请求
 	if util.ShouldAbortRequest(request) {
