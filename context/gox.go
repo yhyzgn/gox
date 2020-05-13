@@ -1,4 +1,4 @@
-// Copyright 2019 yhyzgn xgo
+// Copyright 2019 yhyzgn gox
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,15 +22,14 @@ package context
 
 import (
 	"fmt"
+	"github.com/yhyzgn/gox/resource"
 	"net/http"
 	"sync"
-
-	"github.com/yhyzgn/ghost/config"
 )
 
 // GoXContext GoX 上下文
 type GoXContext struct {
-	reader            *config.Reader           // 资源读取器
+	reader            *resource.Reader         // 资源读取器
 	wares             map[string]interface{}   // 一些组件
 	onceMap           map[string]bool          // 一次性组件
 	errorHandlers     map[int]http.HandlerFunc // 错误处理器，每个错误码对应一个处理器
@@ -47,7 +46,7 @@ var (
 func init() {
 	once.Do(func() {
 		current = &GoXContext{
-			reader:        config.NewReader(),
+			reader:        resource.NewReader(),
 			wares:         make(map[string]interface{}),
 			onceMap:       make(map[string]bool),
 			errorHandlers: make(map[int]http.HandlerFunc),

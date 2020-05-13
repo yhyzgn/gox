@@ -21,10 +21,10 @@
 package gox
 
 import (
+	"github.com/yhyzgn/gox/ioc"
 	"net/http"
 	"sync"
 
-	"github.com/yhyzgn/ghost/ioc"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/component/dispatcher"
 	"github.com/yhyzgn/gox/component/filter"
@@ -75,11 +75,11 @@ func (gx *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// -----------------------------------------------------------------------
 
 	// 过滤器链
-	filterChain := util.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain)
+	filterChain := context.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain)
 	// 分发器
-	dispatch := util.GetWare(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()).(*dispatcher.RequestDispatcher)
+	dispatch := context.GetWare(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()).(*dispatcher.RequestDispatcher)
 	// 拦截器
-	interceptorRegister := util.GetWare(common.InterceptorRegisterName, interceptor.NewRegister()).(*interceptor.Register)
+	interceptorRegister := context.GetWare(common.InterceptorRegisterName, interceptor.NewRegister()).(*interceptor.Register)
 
 	// 将拦截器设置到分发器
 	dispatch.SetInterceptorRegister(interceptorRegister)
@@ -139,7 +139,7 @@ func (gx *GoX) Mapping(path string, ctrls ...core.Controller) *GoX {
 		// 执行每个控制器的 Mapping() 方法，完成 处理器的注册
 		ctrl.Mapping(mapper)
 		// 注册到 IOC
-		ioc.GetProvider().Single("", ctrl)
+		ioc.C.Single("", ctrl)
 	}
 	return gx
 }
@@ -151,9 +151,9 @@ func (gx *GoX) config(configure configure.WebConfigure) {
 		configure.Context(context.Current())
 
 		// 注册过滤器
-		configure.ConfigFilter(util.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain))
+		configure.ConfigFilter(context.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain))
 
 		// 注册拦截器
-		configure.ConfigInterceptor(util.GetWare(common.InterceptorRegisterName, interceptor.NewRegister()).(*interceptor.Register))
+		configure.ConfigInterceptor(context.GetWare(common.InterceptorRegisterName, interceptor.NewRegister()).(*interceptor.Register))
 	}
 }

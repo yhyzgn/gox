@@ -14,22 +14,18 @@
 
 // author : 颜洪毅
 // e-mail : yhyzgn@gmail.com
-// time   : 2019-11-26 14:46
+// time   : 2019-10-11 3:25
 // version: 1.0.0
-// desc   : 上下文工具
+// desc   : 配置初始化
 
-package util
+package resource
 
-import (
-	"github.com/yhyzgn/gox/context"
-)
+import "github.com/yhyzgn/gox/ioc"
 
-// GetWare 从当前上下文中获取组件
-func GetWare(name string, defValue interface{}) interface{} {
-	instance := context.Current().GetWare(name)
-	if instance == nil {
-		instance = defValue
-	}
-	context.Current().SetWare(name, instance)
-	return instance
+func init() {
+	// 无名称注入，使用时按类型获取
+	ioc.C.Add(func() (instance interface{}) {
+		instance = NewReader()
+		return
+	})
 }

@@ -1,4 +1,4 @@
-// Copyright 2019 yhyzgn xgo
+// Copyright 2019 yhyzgn gox
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,11 +20,21 @@
 
 package context
 
-import "github.com/yhyzgn/ghost/context"
+// AppVersion 信息
+type AppVersion struct {
+	Name    string
+	Version string
+}
+
+// ResourceContext 静态资源上下文
+type ResourceContext interface {
+	// Read 读取静态资源
+	Read(filename string) (data []byte, errs error)
+}
 
 // WebContext mvc 上下文
 type WebContext interface {
-	context.ResourceContext
+	ResourceContext
 }
 
 // WareContext 组件管理功能的上下文

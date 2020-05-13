@@ -150,3 +150,18 @@ func FirstToLower(src string) string {
 	}
 	return string(chars)
 }
+
+// StartWith 字符串开头匹配
+func StartWith(text string, start string) bool {
+	return strings.HasPrefix(text, start)
+}
+
+// EndWith 字符串结尾匹配
+func EndWith(text string, end string) bool {
+	return strings.HasSuffix(text, end)
+}
+
+// Trim 字符串去除两端空白
+func Trim(str string) string {
+	return strings.TrimSpace(str)
+}

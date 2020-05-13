@@ -14,30 +14,18 @@
 
 // author : 颜洪毅
 // e-mail : yhyzgn@gmail.com
-// time   : 2019-12-13 11:02
+// time   : 2019-11-26 14:46
 // version: 1.0.0
-// desc   : 文件工具类
+// desc   : 上下文工具
 
-package util
+package context
 
-import "os"
-
-// FileExist 判断文件是否存在
-func FileExist(filename string) bool {
-	_, err := os.Stat(filename)
-	if err == nil || os.IsExist(err) {
-		return true
+// GetWare 从当前上下文中获取组件
+func GetWare(name string, defValue interface{}) interface{} {
+	instance := Current().GetWare(name)
+	if instance == nil {
+		instance = defValue
 	}
-	return false
-}
-
-// IsDir 判断是否是文件夹
-func IsDir(path string) bool {
-	temp, err := os.Stat(path)
-	return err == nil && temp.IsDir()
-}
-
-// IsFile 判断是否是文件
-func IsFile(path string) bool {
-	return !IsDir(path)
+	Current().SetWare(name, instance)
+	return instance
 }

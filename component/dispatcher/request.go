@@ -29,7 +29,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/yhyzgn/ghost/utils"
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/component/interceptor"
@@ -111,9 +110,9 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	handler := hw.Handler
 
 	// 参数处理器
-	argumentResolver := util.GetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()).(resolver.ArgumentResolver)
+	argumentResolver := context.GetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()).(resolver.ArgumentResolver)
 	// 结果处理器
-	resultResolver := util.GetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()).(resolver.ResultResolver)
+	resultResolver := context.GetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()).(resolver.ResultResolver)
 
 	// 先处理一遍参数
 	args, ex := rd.resolve(hw, writer, request, isRESTful)
@@ -461,10 +460,10 @@ func getVOParam(request *http.Request, value interface{}) (reflect.Value, *commo
 		}
 		if realValue.Kind() == reflect.Ptr {
 			// 如果 对象 是 指针，则可以直接设置字段值
-			utils.FieldSet(elemValue.Field(i), val)
+			util.FieldSet(elemValue.Field(i), val)
 		} else {
 			// 否则需要到指针指向的对象，再设置值
-			utils.FieldSet(elemValue.Elem().Field(i), val)
+			util.FieldSet(elemValue.Elem().Field(i), val)
 		}
 	}
 	// 返回原始 数据
