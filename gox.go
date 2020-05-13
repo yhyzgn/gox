@@ -42,7 +42,8 @@ import (
 
 // GoX MVC 服务处理器
 type GoX struct {
-	mu sync.RWMutex
+	mu     sync.RWMutex
+	writer http.ResponseWriter
 }
 
 // 做一些初始化配置
@@ -57,6 +58,9 @@ func init() {
 
 // ServeHTTP 接收处理请求
 func (gx *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	if gx.writer != nil {
+		writer = gx.writer
+	}
 	if request.RequestURI == "*" {
 		if request.ProtoAtLeast(1, 1) {
 			util.SetResponseWriterHeader(writer, "Connection", "closed")
@@ -97,6 +101,12 @@ func (gx *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 // NewGoX 创建新服务
 func NewGoX() *GoX {
 	return new(GoX)
+}
+
+// Writer 设置http响应模型
+func (gx *GoX) Writer(writer http.ResponseWriter) *GoX {
+	gx.writer = writer
+	return gx
 }
 
 // Read 读取资源文件
