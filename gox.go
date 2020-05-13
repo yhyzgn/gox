@@ -30,8 +30,8 @@ import (
 	"github.com/yhyzgn/gox/component/filter"
 	"github.com/yhyzgn/gox/component/interceptor"
 	"github.com/yhyzgn/gox/configure"
-	"github.com/yhyzgn/gox/context"
 	"github.com/yhyzgn/gox/core"
+	"github.com/yhyzgn/gox/ctx"
 	"github.com/yhyzgn/gox/resolver"
 	"github.com/yhyzgn/gox/util"
 )
@@ -43,12 +43,12 @@ type GoX struct {
 
 // 做一些初始化配置
 func init() {
-	context.Current().
-		SetWareOnce(common.FilterChainName, filter.NewChain()).                       // 过滤器链
+	ctx.C().
+		SetWareOnce(common.FilterChainName, filter.NewChain()). // 过滤器链
 		SetWareOnce(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()). // 请求分发器
-		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister()).       // 拦截器
-		SetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()).   // 参数处理器
-		SetWare(common.ResultResolverName, resolver.NewSimpleResultResolver())        // 结果处理器
+		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister()). // 拦截器
+		SetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()). // 参数处理器
+		SetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()) // 结果处理器
 }
 
 // ServeHTTP 接收处理请求
@@ -75,11 +75,11 @@ func (gx *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// -----------------------------------------------------------------------
 
 	// 过滤器链
-	filterChain := context.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain)
+	filterChain := ctx.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain)
 	// 分发器
-	dispatch := context.GetWare(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()).(*dispatcher.RequestDispatcher)
+	dispatch := ctx.GetWare(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()).(*dispatcher.RequestDispatcher)
 	// 拦截器
-	interceptorRegister := context.GetWare(common.InterceptorRegisterName, interceptor.NewRegister()).(*interceptor.Register)
+	interceptorRegister := ctx.GetWare(common.InterceptorRegisterName, interceptor.NewRegister()).(*interceptor.Register)
 
 	// 将拦截器设置到分发器
 	dispatch.SetInterceptorRegister(interceptorRegister)
@@ -95,6 +95,11 @@ func NewGoX() *GoX {
 	return new(GoX)
 }
 
+// Read 读取资源文件
+func (gx *GoX) Read(filename string) (data []byte, errs error) {
+	return ctx.C().Read(filename)
+}
+
 // Configure 配置 Web
 func (gx *GoX) Configure(configure configure.WebConfigure) *GoX {
 	gx.config(configure)
@@ -103,25 +108,25 @@ func (gx *GoX) Configure(configure configure.WebConfigure) *GoX {
 
 // StaticDir 静态资源文件夹
 func (gx *GoX) StaticDir(dir string) *GoX {
-	context.Current().SetStaticDir(dir)
+	ctx.C().SetStaticDir(dir)
 	return gx
 }
 
 // NotFoundHandler 配置 404 处理器
 func (gx *GoX) NotFoundHandler(handler http.HandlerFunc) *GoX {
-	context.Current().SetNotFoundHandler(handler)
+	ctx.C().SetNotFoundHandler(handler)
 	return gx
 }
 
 // UnsupportedMethodHandler 配置 方法不支持 处理器
 func (gx *GoX) UnsupportedMethodHandler(handler http.HandlerFunc) *GoX {
-	context.Current().SetUnSupportMethodHandler(handler)
+	ctx.C().SetUnSupportMethodHandler(handler)
 	return gx
 }
 
 // ErrorCodeHandler 为错误码添加处理器
 func (gx *GoX) ErrorCodeHandler(statusCode int, handler http.HandlerFunc) *GoX {
-	context.Current().AddErrorHandler(statusCode, handler)
+	ctx.C().AddErrorHandler(statusCode, handler)
 	return gx
 }
 
@@ -139,7 +144,7 @@ func (gx *GoX) Mapping(path string, ctrls ...core.Controller) *GoX {
 		// 执行每个控制器的 Mapping() 方法，完成 处理器的注册
 		ctrl.Mapping(mapper)
 		// 注册到 IOC
-		ioc.C.Single("", ctrl)
+		ioc.C().Single("", ctrl)
 	}
 	return gx
 }
@@ -148,12 +153,12 @@ func (gx *GoX) Mapping(path string, ctrls ...core.Controller) *GoX {
 func (gx *GoX) config(configure configure.WebConfigure) {
 	if configure != nil {
 		// 配置 Context
-		configure.Context(context.Current())
+		configure.Context(ctx.C())
 
 		// 注册过滤器
-		configure.ConfigFilter(context.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain))
+		configure.ConfigFilter(ctx.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain))
 
 		// 注册拦截器
-		configure.ConfigInterceptor(context.GetWare(common.InterceptorRegisterName, interceptor.NewRegister()).(*interceptor.Register))
+		configure.ConfigInterceptor(ctx.GetWare(common.InterceptorRegisterName, interceptor.NewRegister()).(*interceptor.Register))
 	}
 }

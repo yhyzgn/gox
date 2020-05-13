@@ -21,10 +21,9 @@
 package gox
 
 import (
-	"github.com/yhyzgn/gog"
+	"fmt"
 	"github.com/yhyzgn/gox/core"
 	"net/http"
-	"reflect"
 	"testing"
 )
 
@@ -40,11 +39,14 @@ func (A) Hello(name string, age int, writer http.ResponseWriter, request *http.R
 }
 
 func TestRouter_Add(t *testing.T) {
-	var val []*A
-	tp := reflect.TypeOf(val)
-	gog.Debug(tp)
-	gog.Debug(tp.Kind() == reflect.Slice)
-	gog.Debug(tp.Elem())
+	router := NewGoX()
+	fmt.Println(router)
+
+	//var val []*A
+	//tp := reflect.TypeOf(val)
+	//gog.Debug(tp)
+	//gog.Debug(tp.Kind() == reflect.Slice)
+	//gog.Debug(tp.Elem())
 
 	//gog.Debug(util.FirstToLower("AA"))
 

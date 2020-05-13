@@ -32,7 +32,7 @@ import (
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/component/interceptor"
-	"github.com/yhyzgn/gox/context"
+	"github.com/yhyzgn/gox/ctx"
 	"github.com/yhyzgn/gox/resolver"
 	"github.com/yhyzgn/gox/util"
 	"github.com/yhyzgn/gox/wire"
@@ -87,14 +87,14 @@ func (rd *RequestDispatcher) Dispatch(writer http.ResponseWriter, request *http.
 		// 默认首页
 		reqPath = "index.html"
 	}
-	filename := strings.ReplaceAll(context.Current().GetStaticDir()+"/"+reqPath, "//", "/")
+	filename := strings.ReplaceAll(ctx.C().GetStaticDir()+"/"+reqPath, "//", "/")
 	if util.FileExist(filename) {
 		http.ServeFile(writer, request, filename)
 		return
 	}
 
 	// 匹配不到，就只能 404 啦~
-	context.Current().GetNotFoundHandler()(writer, request)
+	ctx.C().GetNotFoundHandler()(writer, request)
 }
 
 // doDispatch 具体的请求分发操作
@@ -102,7 +102,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	md := VerifyMethod(hw, request.Method)
 	if !md {
 		// 不支持的 http 方法
-		context.Current().GetUnSupportMethodHandler()(writer, request)
+		ctx.C().GetUnSupportMethodHandler()(writer, request)
 		return
 	}
 
@@ -110,9 +110,9 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	handler := hw.Handler
 
 	// 参数处理器
-	argumentResolver := context.GetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()).(resolver.ArgumentResolver)
+	argumentResolver := ctx.GetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()).(resolver.ArgumentResolver)
 	// 结果处理器
-	resultResolver := context.GetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()).(resolver.ResultResolver)
+	resultResolver := ctx.GetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()).(resolver.ResultResolver)
 
 	// 先处理一遍参数
 	args, ex := rd.resolve(hw, writer, request, isRESTful)

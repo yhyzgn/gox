@@ -23,12 +23,16 @@ package ioc
 import "sync"
 
 var (
-	once sync.Once // 单例初始化控制
-	C    *Provider // 默认实例
+	once    sync.Once // 单例初始化控制
+	current *Provider // 默认实例
 )
 
 func init() {
 	once.Do(func() {
-		C = NewProvider()
+		current = NewProvider()
 	})
+}
+
+func C() *Provider {
+	return current
 }

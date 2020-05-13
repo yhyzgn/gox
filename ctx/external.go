@@ -18,14 +18,14 @@
 // version: 1.0.0
 // desc   : 上下文工具
 
-package context
+package ctx
 
 // GetWare 从当前上下文中获取组件
 func GetWare(name string, defValue interface{}) interface{} {
-	instance := Current().GetWare(name)
+	instance := C().GetWare(name)
 	if instance == nil {
 		instance = defValue
 	}
-	Current().SetWare(name, instance)
+	C().SetWare(name, instance)
 	return instance
 }

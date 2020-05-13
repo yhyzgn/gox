@@ -18,7 +18,7 @@
 // version: 1.0.0
 // desc   : GoX 上下文
 
-package context
+package ctx
 
 import (
 	"fmt"
@@ -58,8 +58,8 @@ func init() {
 	})
 }
 
-// Current 获取当前上下文对象
-func Current() *GoXContext {
+// C 获取当前上下文对象
+func C() *GoXContext {
 	return current
 }
 

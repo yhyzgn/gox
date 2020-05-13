@@ -23,13 +23,13 @@ package configure
 import (
 	"github.com/yhyzgn/gox/component/filter"
 	"github.com/yhyzgn/gox/component/interceptor"
-	"github.com/yhyzgn/gox/context"
+	"github.com/yhyzgn/gox/ctx"
 )
 
 // WebConfigure Web配置接口
 type WebConfigure interface {
 	// Context 配置 Context
-	Context(ctx *context.GoXContext)
+	Context(ctx *ctx.GoXContext)
 
 	// ConfigFilter 注册过滤器
 	ConfigFilter(chain *filter.Chain)

@@ -24,7 +24,7 @@ import "github.com/yhyzgn/gox/ioc"
 
 func init() {
 	// 无名称注入，使用时按类型获取
-	ioc.C.Add(func() (instance interface{}) {
+	ioc.C().Add(func() (instance interface{}) {
 		instance = NewReader()
 		return
 	})

@@ -18,7 +18,7 @@
 // version: 1.0.0
 // desc   : 一个简单的上下文环境
 
-package context
+package ctx
 
 // AppVersion 信息
 type AppVersion struct {
