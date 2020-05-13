@@ -21,10 +21,8 @@
 package gox
 
 import (
-	"github.com/yhyzgn/gox/ioc"
-	"net/http"
-	"sync"
-
+	"context"
+	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/component/dispatcher"
 	"github.com/yhyzgn/gox/component/filter"
@@ -32,8 +30,14 @@ import (
 	"github.com/yhyzgn/gox/configure"
 	"github.com/yhyzgn/gox/core"
 	"github.com/yhyzgn/gox/ctx"
+	"github.com/yhyzgn/gox/ioc"
 	"github.com/yhyzgn/gox/resolver"
 	"github.com/yhyzgn/gox/util"
+	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 )
 
 // GoX MVC 服务处理器
@@ -152,6 +156,42 @@ func (gx *GoX) Mapping(path string, ctrls ...core.Controller) *GoX {
 		ioc.C().Single("", ctrl)
 	}
 	return gx
+}
+
+// Run 开启服务
+func (gx *GoX) Run(server *http.Server) {
+	if server == nil {
+		return
+	}
+
+	// 支持优雅关闭服务
+	go gx.Grace(server)
+
+	gog.InfoF("Server running at [{}]", server.Addr)
+	err := server.ListenAndServe()
+	if err != nil {
+		if err == http.ErrServerClosed {
+			gog.Info("Server stopped safety.")
+			return
+		}
+		gog.Error(err)
+	}
+}
+
+// Grace 优雅关闭服务
+func (gx *GoX) Grace(server *http.Server) {
+	exit := make(chan os.Signal, 1)
+	signal.Notify(exit, os.Interrupt, syscall.SIGTERM)
+	<-exit
+
+	gog.Info("Received signal of stopping server.")
+	c, cancel := context.WithTimeout(context.Background(), server.IdleTimeout)
+	defer cancel()
+
+	err := server.Shutdown(c)
+	if err != nil {
+		gog.ErrorF("Stopping error [{}]", err)
+	}
 }
 
 // config 触发配置装载
