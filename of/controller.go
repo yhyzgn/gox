@@ -18,7 +18,7 @@
 // version: 1.0.0
 // desc   : Controller基类
 
-package internal
+package of
 
 import (
 	"net/http"

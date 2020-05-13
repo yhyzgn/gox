@@ -18,7 +18,7 @@
 // version: 1.0.0
 // desc   : 自定义响应器
 
-package internal
+package of
 
 import (
 	"bytes"
