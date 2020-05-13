@@ -30,6 +30,8 @@ type AppVersion struct {
 type ResourceContext interface {
 	// Read 读取静态资源
 	Read(filename string) (data []byte, errs error)
+	// Load 加载资源文件到实例
+	Load(filename string, bean interface{}) (err error)
 }
 
 // WebContext mvc 上下文

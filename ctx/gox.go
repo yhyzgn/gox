@@ -68,6 +68,11 @@ func (c *GoXContext) Read(filename string) (data []byte, errs error) {
 	return c.reader.Read(filename)
 }
 
+// Load 加载资源文件到实例
+func (c *GoXContext) Load(filename string, bean interface{}) (err error) {
+	return c.reader.Load(filename, bean)
+}
+
 // SetWare 设置组件
 func (c *GoXContext) SetWare(name string, ware interface{}) WareContext {
 	if !c.onceMap[name] {

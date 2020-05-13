@@ -54,7 +54,7 @@ func (cp *Reader) Read(filename string) (data []byte, errs error) {
 }
 
 // Decode 解析配置文件
-func (cp *Reader) Decode(filename string, bean interface{}) error {
+func (cp *Reader) Load(filename string, bean interface{}) error {
 	bs, err := cp.Read(filename)
 	if err != nil {
 		return err

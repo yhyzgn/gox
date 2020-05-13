@@ -100,6 +100,11 @@ func (gx *GoX) Read(filename string) (data []byte, errs error) {
 	return ctx.C().Read(filename)
 }
 
+// Load 加载资源文件到实例
+func (gx *GoX) Load(filename string, bean interface{}) (err error) {
+	return ctx.C().Load(filename, bean)
+}
+
 // Configure 配置 Web
 func (gx *GoX) Configure(configure configure.WebConfigure) *GoX {
 	gx.config(configure)
