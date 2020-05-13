@@ -1,4 +1,4 @@
-// Copyright 2019 yhyzgn gox
+// Copyright 2020 yhyzgn gox
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,13 +14,11 @@
 
 // author : 颜洪毅
 // e-mail : yhyzgn@gmail.com
-// time   : 2019-11-26 14:37
+// time   : 2020-05-13 10:12 下午
 // version: 1.0.0
-// desc   : 拦截器接口
-//			分发器执行完后，请求将到达 拦截器
-//			拦截器执行完后，请求将到达 处理器
+// desc   : 拦截器适配器
 
-package interceptor
+package adapter
 
 import (
 	"net/http"
@@ -29,12 +27,14 @@ import (
 	"github.com/yhyzgn/gox/common"
 )
 
-// Interceptor 拦截器
-type Interceptor interface {
-	// PreHandle 请求处理前
-	// 返回 true 将继续往下执行，返回 false 则截断请求
-	PreHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler) bool
+type Interceptor struct{}
 
-	// 请求处理后
-	AfterHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler, result reflect.Value, err error)
+// PreHandle 请求处理前
+// 返回 true 将继续往下执行，返回 false 则截断请求
+func (i *Interceptor) PreHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler) bool {
+	return true
+}
+
+// 请求处理后
+func (i *Interceptor) AfterHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler, result reflect.Value, err error) {
 }

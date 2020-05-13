@@ -30,15 +30,17 @@ import (
 
 // Mapper 处理器映射器
 type Mapper struct {
-	path string
-	ctrl Controller
+	contextPath string
+	path        string
+	ctrl        Controller
 }
 
 // NewMapper 创建映射器
-func NewMapper(path string, ctrl Controller) *Mapper {
+func NewMapper(contextPath, path string, ctrl Controller) *Mapper {
 	return &Mapper{
-		path: path,
-		ctrl: ctrl,
+		contextPath: contextPath,
+		path:        path,
+		ctrl:        ctrl,
 	}
 }
 
@@ -49,10 +51,11 @@ func (mp *Mapper) Request(paths ...string) *Ship {
 		return nil
 	}
 	return &Ship{
-		mapper:  mp,
-		paths:   paths,
-		methods: make([]common.Method, 0),
-		params:  make([]*common.Param, 0),
+		contextPath: mp.contextPath,
+		mapper:      mp,
+		paths:       paths,
+		methods:     make([]common.Method, 0),
+		params:      make([]*common.Param, 0),
 	}
 }
 

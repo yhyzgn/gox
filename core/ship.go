@@ -26,6 +26,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/yhyzgn/gox/util"
+
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/wire"
@@ -33,6 +35,7 @@ import (
 
 // Ship 路由关系映射器
 type Ship struct {
+	contextPath string             // 根路径
 	mapper      *Mapper            // 所属的 处理器映射器
 	paths       []string           // 配置的 path 路径
 	handlerFunc common.HandlerFunc // 配置的 处理器
@@ -147,6 +150,7 @@ func (sp *Ship) hasResponseWriterAndRequest(tp reflect.Type) (hasWriter bool, ha
 }
 
 // resolvePath 用 / 处理 path，构建标准 url path
+// 并设置ContextPath
 func (sp *Ship) resolvePath() []string {
 	pref := sp.mapper.path
 
@@ -161,6 +165,15 @@ func (sp *Ship) resolvePath() []string {
 			path = ""
 		} else if !strings.HasPrefix(path, "/") {
 			path = "/" + path
+		}
+
+		// 检查并设置ContextPath
+		contextPath := util.Trim(sp.contextPath)
+		if util.Trim(contextPath) != "" {
+			if !strings.HasPrefix(contextPath, "/") {
+				contextPath = "/" + contextPath
+			}
+			pref = contextPath + pref
 		}
 		paths = append(paths, strings.ReplaceAll(fmt.Sprintf("%s%s", pref, path), "//", "/"))
 	}

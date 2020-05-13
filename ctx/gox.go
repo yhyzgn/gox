@@ -22,13 +22,15 @@ package ctx
 
 import (
 	"fmt"
-	"github.com/yhyzgn/gox/resource"
 	"net/http"
 	"sync"
+
+	"github.com/yhyzgn/gox/resource"
 )
 
 // GoXContext GoX 上下文
 type GoXContext struct {
+	contextPath       string                   // 根路径
 	reader            *resource.Reader         // 资源读取器
 	wares             map[string]interface{}   // 一些组件
 	onceMap           map[string]bool          // 一次性组件
@@ -73,6 +75,12 @@ func (c *GoXContext) Load(filename string, bean interface{}) (err error) {
 	return c.reader.Load(filename, bean)
 }
 
+// SetContextPath 设置根路径
+func (c *GoXContext) SetContextPath(contextPath string) WareContext {
+	c.contextPath = contextPath
+	return c
+}
+
 // SetWare 设置组件
 func (c *GoXContext) SetWare(name string, ware interface{}) WareContext {
 	if !c.onceMap[name] {
@@ -88,6 +96,11 @@ func (c *GoXContext) SetWareOnce(name string, ware interface{}) WareContext {
 		c.onceMap[name] = true
 	}
 	return c
+}
+
+// GetContextPath 获取根路径
+func (c *GoXContext) GetContextPath() string {
+	return c.contextPath
 }
 
 // GetWare 获取组件

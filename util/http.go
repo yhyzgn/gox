@@ -61,21 +61,21 @@ func GetRequestAttribute(request *http.Request, key common.AttributeKey) interfa
 //
 // 指定大小写
 func SetRequestHeader(req *http.Request, key, value string) {
-	req.Header[key] = []string{value}
+	req.Header.Set(key, value)
 }
 
 // SetResponseHeader 设置响应头
 //
 // 指定大小写
 func SetResponseHeader(res *http.Response, key, value string) {
-	res.Header[key] = []string{value}
+	res.Header.Set(key, value)
 }
 
 // SetResponseWriterHeader 设置响应头
 //
 // 指定大小写
 func SetResponseWriterHeader(res http.ResponseWriter, key, value string) {
-	res.Header()[key] = []string{value}
+	res.Header().Set(key, value)
 }
 
 // AddURLQuery 向 URL 中添加 query 参数

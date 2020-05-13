@@ -22,6 +22,12 @@ package gox
 
 import (
 	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/component/dispatcher"
@@ -33,34 +39,25 @@ import (
 	"github.com/yhyzgn/gox/ioc"
 	"github.com/yhyzgn/gox/resolver"
 	"github.com/yhyzgn/gox/util"
-	"net/http"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
 )
 
 // GoX MVC 服务处理器
 type GoX struct {
-	mu     sync.RWMutex
-	writer http.ResponseWriter
+	mu sync.RWMutex
 }
 
 // 做一些初始化配置
 func init() {
 	ctx.C().
-		SetWareOnce(common.FilterChainName, filter.NewChain()). // 过滤器链
+		SetWareOnce(common.FilterChainName, filter.NewChain()).                       // 过滤器链
 		SetWareOnce(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()). // 请求分发器
-		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister()). // 拦截器
-		SetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()). // 参数处理器
-		SetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()) // 结果处理器
+		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister()).       // 拦截器
+		SetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()).   // 参数处理器
+		SetWare(common.ResultResolverName, resolver.NewSimpleResultResolver())        // 结果处理器
 }
 
 // ServeHTTP 接收处理请求
 func (gx *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	if gx.writer != nil {
-		writer = gx.writer
-	}
 	if request.RequestURI == "*" {
 		if request.ProtoAtLeast(1, 1) {
 			util.SetResponseWriterHeader(writer, "Connection", "closed")
@@ -104,8 +101,8 @@ func NewGoX() *GoX {
 }
 
 // Writer 设置http响应模型
-func (gx *GoX) Writer(writer http.ResponseWriter) *GoX {
-	gx.writer = writer
+func (gx *GoX) ContextPath(contextPath string) *GoX {
+	ctx.C().SetContextPath(contextPath)
 	return gx
 }
 
@@ -159,7 +156,7 @@ func (gx *GoX) Mapping(path string, ctrls ...core.Controller) *GoX {
 	// 逐个添加
 	for _, ctrl := range ctrls {
 		// 创建一个 处理器映射器对象
-		mapper := core.NewMapper(path, ctrl)
+		mapper := core.NewMapper(ctx.C().GetContextPath(), path, ctrl)
 		// 执行每个控制器的 Mapping() 方法，完成 处理器的注册
 		ctrl.Mapping(mapper)
 		// 注册到 IOC

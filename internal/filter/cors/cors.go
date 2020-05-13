@@ -32,6 +32,7 @@ import (
 
 // XCorsFilter 跨域拦截器
 type XCorsFilter struct {
+	enabled    bool     // 是否启用
 	origins    []string // 授权的源控制
 	methods    []string // 允许请求的 HTTP Method
 	headers    []string // 控制哪些 header 能发送真正的请求
@@ -43,6 +44,7 @@ type XCorsFilter struct {
 // NewXCorsFilter 创建新拦截器
 func NewXCorsFilter() *XCorsFilter {
 	return &XCorsFilter{
+		enabled:    true,
 		origins:    make([]string, 0),
 		methods:    make([]string, 0),
 		headers:    make([]string, 0),
@@ -55,34 +57,42 @@ func NewXCorsFilter() *XCorsFilter {
 // DoFilter 执行跨域拦截器
 func (c *XCorsFilter) DoFilter(writer http.ResponseWriter, request *http.Request, chain *filter.Chain) {
 	// 支持跨域
-	if len(c.origins) == 0 {
-		c.origins = append(c.origins, "*")
-	}
-	if len(c.methods) == 0 {
-		c.methods = append(c.methods, http.MethodOptions, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodHead)
-	}
+	if c.enabled {
+		if len(c.origins) == 0 {
+			c.origins = append(c.origins, "*")
+		}
+		if len(c.methods) == 0 {
+			c.methods = append(c.methods, http.MethodOptions, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodHead)
+		}
 
-	// 设置到响应头
-	util.SetResponseWriterHeader(writer, "Access-Control-Allow-Origin", strings.Join(c.origins, ", "))
-	util.SetResponseWriterHeader(writer, "Access-Control-Allow-Methods", strings.Join(c.methods, ", "))
+		// 设置到响应头
+		util.SetResponseWriterHeader(writer, "Access-Control-Allow-Origin", strings.Join(c.origins, ", "))
+		util.SetResponseWriterHeader(writer, "Access-Control-Allow-Methods", strings.Join(c.methods, ", "))
 
-	if len(c.headers) > 0 {
-		util.SetResponseWriterHeader(writer, "Access-Control-Allow-Headers", strings.Join(c.headers, ", "))
-	}
-	if len(c.exposes) > 0 {
-		util.SetResponseWriterHeader(writer, "Access-Control-Expose-Headers", strings.Join(c.exposes, ", "))
-	}
-	util.SetResponseWriterHeader(writer, "Access-Control-Allow-Credentials", strconv.FormatBool(c.credential))
-	util.SetResponseWriterHeader(writer, "Access-Control-Max-Age", strconv.FormatInt(c.maxAge, 10))
+		if len(c.headers) > 0 {
+			util.SetResponseWriterHeader(writer, "Access-Control-Allow-Headers", strings.Join(c.headers, ", "))
+		}
+		if len(c.exposes) > 0 {
+			util.SetResponseWriterHeader(writer, "Access-Control-Expose-Headers", strings.Join(c.exposes, ", "))
+		}
+		util.SetResponseWriterHeader(writer, "Access-Control-Allow-Credentials", strconv.FormatBool(c.credential))
+		util.SetResponseWriterHeader(writer, "Access-Control-Max-Age", strconv.FormatInt(c.maxAge, 10))
 
-	// 屏蔽 跨域条件下的 OPTIONS 请求
-	if util.ShouldAbortRequest(request) {
-		writer.WriteHeader(http.StatusNoContent)
-		return
+		// 屏蔽 跨域条件下的 OPTIONS 请求
+		if util.ShouldAbortRequest(request) {
+			writer.WriteHeader(http.StatusNoContent)
+			return
+		}
 	}
 
 	// 继续往下执行
 	chain.DoFilter(writer, request)
+}
+
+// Enabled 是否启用
+func (c *XCorsFilter) Enabled(enabled bool) *XCorsFilter {
+	c.enabled = enabled
+	return c
 }
 
 // AllowedOrigins 配置授权源控制
