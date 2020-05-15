@@ -100,6 +100,16 @@ func NewGoX() *GoX {
 	return new(GoX)
 }
 
+// Read 读取资源文件
+func (gx *GoX) Read(filename string) (data []byte, errs error) {
+	return ctx.C().Read(filename)
+}
+
+// Load 加载资源文件到实例
+func (gx *GoX) Load(filename string, bean interface{}) (err error) {
+	return ctx.C().Load(filename, bean)
+}
+
 // Configure 配置 Web
 func (gx *GoX) Configure(configure configure.WebConfigure) *GoX {
 	gx.config(configure)
@@ -108,49 +118,49 @@ func (gx *GoX) Configure(configure configure.WebConfigure) *GoX {
 
 // ContextPath 设置ContextPath
 func (gx *GoX) ContextPath(contextPath string) *GoX {
-	gx.SetContextPath(contextPath)
+	ctx.C().SetContextPath(contextPath)
 	return gx
 }
 
 // StaticDir 静态资源文件夹
 func (gx *GoX) StaticDir(dir string) *GoX {
-	gx.SetStaticDir(dir)
+	ctx.C().SetStaticDir(dir)
 	return gx
 }
 
 // NotFoundHandler 配置 404 处理器
 func (gx *GoX) NotFoundHandler(handler http.HandlerFunc) *GoX {
-	gx.SetNotFoundHandler(handler)
+	ctx.C().SetNotFoundHandler(handler)
 	return gx
 }
 
 // UnsupportedMethodHandler 配置 方法不支持 处理器
 func (gx *GoX) UnsupportedMethodHandler(handler http.HandlerFunc) *GoX {
-	gx.SetUnSupportMethodHandler(handler)
+	ctx.C().SetUnSupportMethodHandler(handler)
 	return gx
 }
 
 // ErrorCodeHandler 为错误码添加处理器
 func (gx *GoX) ErrorCodeHandler(statusCode int, handler http.HandlerFunc) *GoX {
-	gx.AddErrorHandler(statusCode, handler)
+	ctx.C().AddErrorHandler(statusCode, handler)
 	return gx
 }
 
 // ArgumentResolver 参数处理器
 func (gx *GoX) ArgumentResolver(resolver resolver.ArgumentResolver) *GoX {
-	gx.SetArgumentResolver(resolver)
+	ctx.C().SetArgumentResolver(resolver)
 	return gx
 }
 
 // ResultResolver 结果处理器
 func (gx *GoX) ResultResolver(resolver resolver.ResultResolver) *GoX {
-	gx.SetResultResolver(resolver)
+	ctx.C().SetResultResolver(resolver)
 	return gx
 }
 
 // ErrorResolver 全局异常处理器
 func (gx *GoX) ErrorResolver(resolver resolver.ErrorResolver) *GoX {
-	gx.SetErrorResolver(resolver)
+	ctx.C().SetErrorResolver(resolver)
 	return gx
 }
 
