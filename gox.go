@@ -46,6 +46,14 @@ type GoX struct {
 	ctx.GoXContext
 }
 
+// 做一些初始化配置
+func init() {
+	ctx.C().
+		SetWareOnce(common.FilterChainName, filter.NewChain()). // 过滤器链
+		SetWareOnce(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()). // 请求分发器
+		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister()) // 拦截器
+}
+
 // ServeHTTP 接收处理请求
 func (gx *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	if request.RequestURI == "*" {
@@ -87,13 +95,7 @@ func (gx *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 
 // NewGoX 创建新服务
 func NewGoX() *GoX {
-	x := new(GoX)
-	// 做一些初始化配置
-	x.
-		SetWareOnce(common.FilterChainName, filter.NewChain()). // 过滤器链
-		SetWareOnce(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()). // 请求分发器
-		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister()) // 拦截器
-	return x
+	return new(GoX)
 }
 
 // Writer 设置http响应模型
