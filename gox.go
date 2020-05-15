@@ -132,19 +132,19 @@ func (gx *GoX) ErrorCodeHandler(statusCode int, handler http.HandlerFunc) *GoX {
 
 // ArgumentResolver 参数处理器
 func (gx *GoX) ArgumentResolver(resolver resolver.ArgumentResolver) *GoX {
-	gx.SetWare(common.ArgumentResolverName, resolver)
+	gx.SetArgumentResolver(resolver)
 	return gx
 }
 
 // ResultResolver 结果处理器
 func (gx *GoX) ResultResolver(resolver resolver.ResultResolver) *GoX {
-	gx.SetWare(common.ResultResolverName, resolver)
+	gx.SetResultResolver(resolver)
 	return gx
 }
 
 // ErrorResolver 全局异常处理器
 func (gx *GoX) ErrorResolver(resolver resolver.ErrorResolver) *GoX {
-	gx.SetWare(common.ErrorResolverName, resolver)
+	gx.SetErrorResolver(resolver)
 	return gx
 }
 

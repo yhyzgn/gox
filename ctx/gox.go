@@ -25,6 +25,9 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/yhyzgn/gox/common"
+	"github.com/yhyzgn/gox/resolver"
+
 	"github.com/yhyzgn/gox/resource"
 )
 
@@ -127,6 +130,24 @@ func (c *GoXContext) SetUnSupportMethodHandler(handler http.HandlerFunc) *GoXCon
 // AddErrorHandler 添加错误码处理器
 func (c *GoXContext) AddErrorHandler(statusCode int, handler http.HandlerFunc) *GoXContext {
 	c.errorHandlers[statusCode] = handler
+	return c
+}
+
+// SetArgumentResolver 设置参数处理器
+func (c *GoXContext) SetArgumentResolver(resolver resolver.ArgumentResolver) *GoXContext {
+	c.SetWare(common.ArgumentResolverName, resolver)
+	return c
+}
+
+// SetResultResolver 设置结果处理器
+func (c *GoXContext) SetResultResolver(resolver resolver.ResultResolver) *GoXContext {
+	c.SetWare(common.ResultResolverName, resolver)
+	return c
+}
+
+// SetErrorResolver 设置全局异常处理器
+func (c *GoXContext) SetErrorResolver(resolver resolver.ErrorResolver) *GoXContext {
+	c.SetWare(common.ErrorResolverName, resolver)
 	return c
 }
 
