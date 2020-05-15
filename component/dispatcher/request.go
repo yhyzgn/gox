@@ -200,7 +200,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 		res, err = resultResolver.Resolve(hw, results, writer, request)
 		// 如果有错误，就交给异常处理器处理
 		if err != nil {
-			res = reflect.ValueOf(errorResolver.Resolve(reflect.ValueOf(err), writer))
+			res = reflect.ValueOf(errorResolver.Resolve(err, writer))
 		}
 	}
 

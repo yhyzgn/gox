@@ -28,6 +28,8 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/yhyzgn/gox/resolver"
+
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/component/dispatcher"
@@ -49,9 +51,9 @@ type GoX struct {
 // 做一些初始化配置
 func init() {
 	ctx.C().
-		SetWareOnce(common.FilterChainName, filter.NewChain()). // 过滤器链
+		SetWareOnce(common.FilterChainName, filter.NewChain()).                       // 过滤器链
 		SetWareOnce(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()). // 请求分发器
-		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister()) // 拦截器
+		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister())        // 拦截器
 }
 
 // ServeHTTP 接收处理请求
@@ -98,12 +100,6 @@ func NewGoX() *GoX {
 	return new(GoX)
 }
 
-// Writer 设置http响应模型
-func (gx *GoX) ContextPath(contextPath string) *GoX {
-	ctx.C().SetContextPath(contextPath)
-	return gx
-}
-
 // Configure 配置 Web
 func (gx *GoX) Configure(configure configure.WebConfigure) *GoX {
 	gx.config(configure)
@@ -112,25 +108,43 @@ func (gx *GoX) Configure(configure configure.WebConfigure) *GoX {
 
 // StaticDir 静态资源文件夹
 func (gx *GoX) StaticDir(dir string) *GoX {
-	ctx.C().SetStaticDir(dir)
+	gx.SetStaticDir(dir)
 	return gx
 }
 
 // NotFoundHandler 配置 404 处理器
 func (gx *GoX) NotFoundHandler(handler http.HandlerFunc) *GoX {
-	ctx.C().SetNotFoundHandler(handler)
+	gx.SetNotFoundHandler(handler)
 	return gx
 }
 
 // UnsupportedMethodHandler 配置 方法不支持 处理器
 func (gx *GoX) UnsupportedMethodHandler(handler http.HandlerFunc) *GoX {
-	ctx.C().SetUnSupportMethodHandler(handler)
+	gx.SetUnSupportMethodHandler(handler)
 	return gx
 }
 
 // ErrorCodeHandler 为错误码添加处理器
 func (gx *GoX) ErrorCodeHandler(statusCode int, handler http.HandlerFunc) *GoX {
-	ctx.C().AddErrorHandler(statusCode, handler)
+	gx.AddErrorHandler(statusCode, handler)
+	return gx
+}
+
+// ArgumentResolver 参数处理器
+func (gx *GoX) ArgumentResolver(resolver resolver.ArgumentResolver) *GoX {
+	gx.SetWare(common.ArgumentResolverName, resolver)
+	return gx
+}
+
+// ResultResolver 结果处理器
+func (gx *GoX) ResultResolver(resolver resolver.ResultResolver) *GoX {
+	gx.SetWare(common.ResultResolverName, resolver)
+	return gx
+}
+
+// ErrorResolver 全局异常处理器
+func (gx *GoX) ErrorResolver(resolver resolver.ErrorResolver) *GoX {
+	gx.SetWare(common.ErrorResolverName, resolver)
 	return gx
 }
 

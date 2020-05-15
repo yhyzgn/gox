@@ -22,14 +22,13 @@ package resolver
 
 import (
 	"net/http"
-	"reflect"
 )
 
 // ErrorResolver 异常处理器
 type ErrorResolver interface {
 
 	// Resolve 处理异常
-	Resolve(value reflect.Value, writer http.ResponseWriter) interface{}
+	Resolve(err error, writer http.ResponseWriter) interface{}
 }
 
 // SimpleErrorResolver 默认的异常处理器
@@ -39,6 +38,6 @@ func NewSimpleErrorResolver() *SimpleErrorResolver {
 	return new(SimpleErrorResolver)
 }
 
-func (ser *SimpleErrorResolver) Resolve(value reflect.Value, writer http.ResponseWriter) interface{} {
-	return value.Interface()
+func (ser *SimpleErrorResolver) Resolve(err error, writer http.ResponseWriter) interface{} {
+	return err
 }
