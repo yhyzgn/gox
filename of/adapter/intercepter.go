@@ -42,8 +42,8 @@ func (*Interceptor) AfterHandle(writer http.ResponseWriter, request *http.Reques
 }
 
 // SetReqAttr 设置request字段
-func (*Interceptor) SetReqAttr(req *http.Request, key common.AttributeKey, value interface{}) {
-	util.SetRequestAttribute(req, key, value)
+func (*Interceptor) SetReqAttr(req *http.Request, key common.AttributeKey, value interface{}) *http.Request {
+	return util.SetRequestAttribute(req, key, value)
 }
 
 // GetReqAttr 获取request字段

@@ -31,8 +31,8 @@ import (
 type Controller struct{}
 
 // SetReqAttr 设置request字段
-func (c Controller) SetReqAttr(req *http.Request, key common.AttributeKey, value interface{}) {
-	util.SetRequestAttribute(req, key, value)
+func (c Controller) SetReqAttr(req *http.Request, key common.AttributeKey, value interface{}) *http.Request {
+	return util.SetRequestAttribute(req, key, value)
 }
 
 // GetReqAttr 获取request字段

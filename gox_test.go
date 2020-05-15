@@ -23,7 +23,9 @@ package gox
 import (
 	"fmt"
 	"github.com/yhyzgn/gox/core"
+	"github.com/yhyzgn/gox/of"
 	"net/http"
+	"reflect"
 	"testing"
 )
 
@@ -39,8 +41,24 @@ func (A) Hello(name string, age int, writer http.ResponseWriter, request *http.R
 }
 
 func TestRouter_Add(t *testing.T) {
-	router := NewGoX()
-	fmt.Println(router)
+	//router := NewGoX()
+	//fmt.Println(router)
+
+	wtr := http.ResponseWriter(&of.ResponseWriter{})
+	req := &http.Request{}
+
+	tpReq := reflect.ValueOf(req)
+	tpWtr := reflect.ValueOf(wtr)
+
+	fmt.Println(tpReq.Type().Elem().PkgPath())
+	fmt.Println(tpReq.Type().Kind())
+	fmt.Println(tpReq.Type().Elem().Kind())
+	fmt.Println(tpReq.Type().Elem().Name())
+
+	fmt.Println(tpWtr.Type().Elem().PkgPath())
+	fmt.Println(tpWtr.Type().Kind())
+	fmt.Println(tpWtr.Type().Elem().Kind())
+	fmt.Println(tpWtr.Type().Elem().Name())
 
 	//var val []*A
 	//tp := reflect.TypeOf(val)

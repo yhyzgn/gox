@@ -171,8 +171,8 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	for i, arg := range args {
 		// ----------------------------------------------------------------------------------------------    net/http    ----------------------------------------------------------------------------------------------
 		// http.ResponseWriter || *http.Request
-		if arg.Type().PkgPath() == "net/http" {
-			if arg.Type().Kind() == reflect.Interface && arg.Type().Name() == "ResponseWriter" {
+		if arg.Type().Elem() != nil && arg.Type().Elem().PkgPath() == "net/http" {
+			if arg.Type().Elem().Kind() == reflect.Interface && arg.Type().Elem().Name() == "ResponseWriter" {
 				// http.ResponseWriter
 				args[i] = reflect.ValueOf(writer)
 			} else if arg.Type().Kind() == reflect.Ptr && arg.Type().Elem().Kind() == reflect.Struct && arg.Type().Elem().Name() == "Request" {
