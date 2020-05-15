@@ -22,6 +22,9 @@ package filter
 
 import (
 	"net/http"
+	"strings"
+
+	"github.com/yhyzgn/gox/ctx"
 
 	"github.com/yhyzgn/gog"
 	"github.com/yhyzgn/gox/common"
@@ -88,8 +91,10 @@ func (fc *Chain) Exclude(path string) *Chain {
 // DoFilter 逐个执行过滤器
 // 执行顺序 为 添加顺序
 func (fc *Chain) DoFilter(writer http.ResponseWriter, request *http.Request) {
+	// 匹配时忽略ContextPath
+	reqPath := strings.ReplaceAll(request.URL.Path, ctx.C().GetContextPath(), "")
 	// 先判断这些请求是否已经被排除在 过滤器 外
-	if util.IsExcludedRequest(request, fc.excludes) {
+	if util.IsExcludedRequest(reqPath, fc.excludes) {
 		gog.DebugF("The request [%v] has been excluded", request.URL.Path)
 		fc.dispatcher.Dispatch(writer, request)
 		return
@@ -113,11 +118,11 @@ func (fc *Chain) DoFilter(writer http.ResponseWriter, request *http.Request) {
 		// 所有请求
 		gog.DebugF("The request [%v] has passed by filter [/]", request.URL.Path)
 		item.filter.DoFilter(writer, request, fc)
-	} else if item.path == request.URL.Path {
+	} else if item.path == reqPath {
 		// 严格匹配，只有路径完全相同才走过滤器
 		gog.DebugF("The request [%v] has passed by filter [%v]", request.URL.Path, item.path)
 		item.filter.DoFilter(writer, request, fc)
-	} else if util.MatchedRequestByPathPattern(request, item.path) {
+	} else if util.MatchedRequestByPathPattern(reqPath, item.path) {
 		// 前缀|后缀匹配成功，走过滤器
 		gog.DebugF("The request [%v] has passed by filter [%v]", request.URL.Path, item.path)
 		item.filter.DoFilter(writer, request, fc)

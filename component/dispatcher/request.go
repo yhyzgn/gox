@@ -129,20 +129,23 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 
 	gog.DebugF("Params of request path [{}] are [{}], matched router [{}] of params [{}]", request.URL.Path, util.FormatRealArgsValue(args), hw.Path, util.FormatHandlerArgs(hw.Params))
 
+	// 匹配时忽略ContextPath
+	reqPath := strings.ReplaceAll(request.URL.Path, ctx.C().GetContextPath(), "")
+
 	// 处理前，执行拦截器 PreHandle() 方法
-	if rd.register != nil && !util.IsExcludedRequest(request, rd.register.GetExcludes()) {
+	if rd.register != nil && !util.IsExcludedRequest(reqPath, rd.register.GetExcludes()) {
 		passed, path := rd.register.Iterate(func(index int, path string, interceptor interceptor.Interceptor) (skipped, passed bool) {
 			// 匹配 path，未匹配到的直接跳过
 			if path == "/" {
 				// 所有请求
 				skipped = false
 				passed, request, writer = interceptor.PreHandle(writer, request, handler)
-			} else if path == request.URL.Path {
+			} else if path == reqPath {
 				// 严格匹配，只有路径完全相同才走过滤器
 				skipped = false
 				passed, request, writer = interceptor.PreHandle(writer, request, handler)
-			} else if util.MatchedRequestByPathPattern(request, path) {
-				// 前缀匹配成功，执行拦截器
+			} else if util.MatchedRequestByPathPattern(reqPath, path) {
+				// 正则匹配成功，执行拦截器
 				skipped = false
 				passed, request, writer = interceptor.PreHandle(writer, request, handler)
 			} else {
@@ -171,7 +174,6 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 
 	// 将request和writer设置回请求中
 	for i, arg := range args {
-		// ----------------------------------------------------------------------------------------------    net/http    ----------------------------------------------------------------------------------------------
 		// http.ResponseWriter || *http.Request
 		if arg.Type().Elem() != nil && arg.Type().Elem().PkgPath() == "net/http" {
 			if arg.Type().Elem().Kind() == reflect.Interface && arg.Type().Elem().Name() == "ResponseWriter" {
@@ -205,21 +207,17 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	}
 
 	// 处理完成后，执行拦截器的 AfterHandle() 方法
-	if rd.register != nil && !util.IsExcludedRequest(request, rd.register.GetExcludes()) {
+	if rd.register != nil && !util.IsExcludedRequest(reqPath, rd.register.GetExcludes()) {
 		rd.register.ReverseIterate(func(index int, path string, interceptor interceptor.Interceptor) {
 			// 匹配 path，未匹配到的直接跳过
 			if path == "/" {
 				// 所有请求
 				request, writer = interceptor.AfterHandle(writer, request, handler, res, err)
-			} else if reg, e := regexp.Compile("/\\*+$"); e == nil && reg.MatchString(path) {
-				// 前缀匹配
-				pattern := reg.ReplaceAllString(path, "/.+?")
-				if matched, err := regexp.MatchString("^"+pattern+"$", request.URL.Path); matched && err == nil {
-					// 前缀匹配成功，执行拦截器
-					request, writer = interceptor.AfterHandle(writer, request, handler, res, err)
-				}
-			} else if path == request.URL.Path {
+			} else if path == reqPath {
 				// 严格匹配，只有路径完全相同才走过滤器
+				request, writer = interceptor.AfterHandle(writer, request, handler, res, err)
+			} else if util.MatchedRequestByPathPattern(reqPath, path) {
+				// 正则匹配成功，执行拦截器
 				request, writer = interceptor.AfterHandle(writer, request, handler, res, err)
 			}
 		})

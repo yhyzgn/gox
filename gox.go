@@ -106,6 +106,12 @@ func (gx *GoX) Configure(configure configure.WebConfigure) *GoX {
 	return gx
 }
 
+// ContextPath 设置ContextPath
+func (gx *GoX) ContextPath(contextPath string) *GoX {
+	gx.SetContextPath(contextPath)
+	return gx
+}
+
 // StaticDir 静态资源文件夹
 func (gx *GoX) StaticDir(dir string) *GoX {
 	gx.SetStaticDir(dir)
