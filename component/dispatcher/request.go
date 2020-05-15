@@ -167,6 +167,21 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 		}
 	}
 
+	// 将request和writer设置回请求中
+	for i, arg := range args {
+		// ----------------------------------------------------------------------------------------------    net/http    ----------------------------------------------------------------------------------------------
+		// http.ResponseWriter || *http.Request
+		if arg.Type().PkgPath() == "net/http" {
+			if arg.Type().Kind() == reflect.Interface && arg.Type().Name() == "ResponseWriter" {
+				// http.ResponseWriter
+				args[i] = reflect.ValueOf(writer)
+			} else if arg.Type().Kind() == reflect.Ptr && arg.Type().Elem().Kind() == reflect.Struct && arg.Type().Elem().Name() == "Request" {
+				// http.Request
+				args[i] = reflect.ValueOf(request)
+			}
+		}
+	}
+
 	// 拦截器通过后，将请求交由 处理器 处理
 	// 已经获取到参数列表，执行方法即可
 	results := handler.Call(args)
