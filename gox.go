@@ -37,23 +37,13 @@ import (
 	"github.com/yhyzgn/gox/core"
 	"github.com/yhyzgn/gox/ctx"
 	"github.com/yhyzgn/gox/ioc"
-	"github.com/yhyzgn/gox/resolver"
 	"github.com/yhyzgn/gox/util"
 )
 
 // GoX MVC 服务处理器
 type GoX struct {
 	mu sync.RWMutex
-}
-
-// 做一些初始化配置
-func init() {
-	ctx.C().
-		SetWareOnce(common.FilterChainName, filter.NewChain()).                       // 过滤器链
-		SetWareOnce(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()). // 请求分发器
-		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister()).       // 拦截器
-		SetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()).   // 参数处理器
-		SetWare(common.ResultResolverName, resolver.NewSimpleResultResolver())        // 结果处理器
+	ctx.GoXContext
 }
 
 // ServeHTTP 接收处理请求
@@ -97,23 +87,19 @@ func (gx *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 
 // NewGoX 创建新服务
 func NewGoX() *GoX {
-	return new(GoX)
+	x := new(GoX)
+	// 做一些初始化配置
+	x.
+		SetWareOnce(common.FilterChainName, filter.NewChain()). // 过滤器链
+		SetWareOnce(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()). // 请求分发器
+		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister()) // 拦截器
+	return x
 }
 
 // Writer 设置http响应模型
 func (gx *GoX) ContextPath(contextPath string) *GoX {
 	ctx.C().SetContextPath(contextPath)
 	return gx
-}
-
-// Read 读取资源文件
-func (gx *GoX) Read(filename string) (data []byte, errs error) {
-	return ctx.C().Read(filename)
-}
-
-// Load 加载资源文件到实例
-func (gx *GoX) Load(filename string, bean interface{}) (err error) {
-	return ctx.C().Load(filename, bean)
 }
 
 // Configure 配置 Web

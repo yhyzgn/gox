@@ -113,6 +113,8 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	argumentResolver := ctx.GetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()).(resolver.ArgumentResolver)
 	// 结果处理器
 	resultResolver := ctx.GetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()).(resolver.ResultResolver)
+	// 异常处理器
+	errorResolver := ctx.GetWare(common.ErrorResolverName, resolver.NewSimpleErrorResolver()).(resolver.ErrorResolver)
 
 	// 先处理一遍参数
 	args, ex := rd.resolve(hw, writer, request, isRESTful)
@@ -196,9 +198,9 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	} else {
 		// 响应结果交由 结果处理器 处理
 		res, err = resultResolver.Resolve(hw, results, writer, request)
-		// 如果有错误，就响应错误信息
+		// 如果有错误，就交给异常处理器处理
 		if err != nil {
-			res = reflect.ValueOf(err)
+			res = reflect.ValueOf(errorResolver.Resolve(reflect.ValueOf(err), writer))
 		}
 	}
 

@@ -83,9 +83,7 @@ func (c *GoXContext) SetContextPath(contextPath string) WareContext {
 
 // SetWare 设置组件
 func (c *GoXContext) SetWare(name string, ware interface{}) WareContext {
-	if !c.onceMap[name] {
-		c.wares[name] = ware
-	}
+	c.wares[name] = ware
 	return c
 }
 

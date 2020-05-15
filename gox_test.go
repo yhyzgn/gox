@@ -41,8 +41,8 @@ func (A) Hello(name string, age int, writer http.ResponseWriter, request *http.R
 }
 
 func TestRouter_Add(t *testing.T) {
-	//router := NewGoX()
-	//fmt.Println(router)
+	router := NewGoX()
+	fmt.Println(router)
 
 	wtr := http.ResponseWriter(&of.ResponseWriter{})
 	req := &http.Request{}

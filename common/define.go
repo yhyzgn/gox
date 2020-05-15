@@ -32,6 +32,7 @@ const (
 	RequestDispatcherName   = "gox-request-dispatcher"   // 请求分发器名字
 	ArgumentResolverName    = "gox-argument-resolver"    // 参数处理器名字
 	ResultResolverName      = "gox-result-resolver"      // 结果处理器名字
+	ErrorResolverName       = "gox-error-resolver"       // 全局异常处理器名字
 	RequestFilterIndexName  = "gox-filter-index"         // 每个请求过滤器索引名字
 )
 
