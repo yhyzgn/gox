@@ -134,15 +134,15 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 			if path == "/" {
 				// 所有请求
 				skipped = false
-				passed = interceptor.PreHandle(writer, request, handler)
+				passed, request, writer = interceptor.PreHandle(writer, request, handler)
 			} else if path == request.URL.Path {
 				// 严格匹配，只有路径完全相同才走过滤器
 				skipped = false
-				passed = interceptor.PreHandle(writer, request, handler)
+				passed, request, writer = interceptor.PreHandle(writer, request, handler)
 			} else if util.MatchedRequestByPathPattern(request, path) {
 				// 前缀匹配成功，执行拦截器
 				skipped = false
-				passed = interceptor.PreHandle(writer, request, handler)
+				passed, request, writer = interceptor.PreHandle(writer, request, handler)
 			} else {
 				// 跳过
 				skipped = true
@@ -193,17 +193,17 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 			// 匹配 path，未匹配到的直接跳过
 			if path == "/" {
 				// 所有请求
-				interceptor.AfterHandle(writer, request, handler, res, err)
+				request, writer = interceptor.AfterHandle(writer, request, handler, res, err)
 			} else if reg, e := regexp.Compile("/\\*+$"); e == nil && reg.MatchString(path) {
 				// 前缀匹配
 				pattern := reg.ReplaceAllString(path, "/.+?")
 				if matched, err := regexp.MatchString("^"+pattern+"$", request.URL.Path); matched && err == nil {
 					// 前缀匹配成功，执行拦截器
-					interceptor.AfterHandle(writer, request, handler, res, err)
+					request, writer = interceptor.AfterHandle(writer, request, handler, res, err)
 				}
 			} else if path == request.URL.Path {
 				// 严格匹配，只有路径完全相同才走过滤器
-				interceptor.AfterHandle(writer, request, handler, res, err)
+				request, writer = interceptor.AfterHandle(writer, request, handler, res, err)
 			}
 		})
 	}

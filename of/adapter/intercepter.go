@@ -21,6 +21,7 @@
 package adapter
 
 import (
+	"github.com/yhyzgn/gox/util"
 	"net/http"
 	"reflect"
 
@@ -31,10 +32,21 @@ type Interceptor struct{}
 
 // PreHandle 请求处理前
 // 返回 true 将继续往下执行，返回 false 则截断请求
-func (i *Interceptor) PreHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler) bool {
-	return true
+func (*Interceptor) PreHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler) (bool, *http.Request, http.ResponseWriter) {
+	return true, request, writer
 }
 
 // 请求处理后
-func (i *Interceptor) AfterHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler, result reflect.Value, err error) {
+func (*Interceptor) AfterHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler, result reflect.Value, err error) (*http.Request, http.ResponseWriter) {
+	return request, writer
+}
+
+// SetReqAttr 设置request字段
+func (*Interceptor) SetReqAttr(req *http.Request, key common.AttributeKey, value interface{}) {
+	util.SetRequestAttribute(req, key, value)
+}
+
+// GetReqAttr 获取request字段
+func (*Interceptor) GetReqAttr(req *http.Request, key common.AttributeKey) interface{} {
+	return util.GetRequestAttribute(req, key)
 }

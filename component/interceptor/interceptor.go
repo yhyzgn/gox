@@ -33,8 +33,8 @@ import (
 type Interceptor interface {
 	// PreHandle 请求处理前
 	// 返回 true 将继续往下执行，返回 false 则截断请求
-	PreHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler) bool
+	PreHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler) (bool, *http.Request, http.ResponseWriter)
 
 	// 请求处理后
-	AfterHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler, result reflect.Value, err error)
+	AfterHandle(writer http.ResponseWriter, request *http.Request, handler common.Handler, result reflect.Value, err error) (*http.Request, http.ResponseWriter)
 }

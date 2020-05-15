@@ -31,11 +31,11 @@ import (
 type Controller struct{}
 
 // SetReqAttr 设置request字段
-func (c Controller) SetReqAttr(req *http.Request, key string, value interface{}) {
-	util.SetRequestAttribute(req, common.AttributeKey(key), value)
+func (c Controller) SetReqAttr(req *http.Request, key common.AttributeKey, value interface{}) {
+	util.SetRequestAttribute(req, key, value)
 }
 
 // GetReqAttr 获取request字段
-func (c Controller) GetReqAttr(req *http.Request, key string) interface{} {
-	return util.GetRequestAttribute(req, common.AttributeKey(key))
+func (c Controller) GetReqAttr(req *http.Request, key common.AttributeKey) interface{} {
+	return util.GetRequestAttribute(req, key)
 }
