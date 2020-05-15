@@ -174,23 +174,14 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 
 	// 将request和writer设置回请求中
 	for i, arg := range args {
-		// 原始类型
-		realType := arg.Type()
-		// 具体类型，如果是指针，则变换为具体类型
-		elemType := realType
-		if elemType.Kind() == reflect.Ptr {
-			elemType = elemType.Elem()
-		}
-		elemKind := elemType.Kind()
-		elemName := elemType.Name()
-
-		// http.ResponseWriter || *http.Request
-		if elemType.PkgPath() == "net/http" {
-			if elemKind == reflect.Interface && elemName == "ResponseWriter" {
+		val := arg.Interface()
+		if val != nil {
+			// http.ResponseWriter || *http.Request
+			if _, ok := val.(http.ResponseWriter); ok {
 				// http.ResponseWriter
 				args[i] = reflect.ValueOf(writer)
-			} else if realType.Kind() == reflect.Ptr && elemKind == reflect.Struct && elemName == "Request" {
-				// http.Request
+			} else if _, ok = val.(*http.Request); ok {
+				// *http.Request
 				args[i] = reflect.ValueOf(request)
 			}
 		}
