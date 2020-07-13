@@ -20,7 +20,10 @@
 
 package interceptor
 
-import "github.com/yhyzgn/gog"
+import (
+	"github.com/yhyzgn/gog"
+	"sync"
+)
 
 type item struct {
 	path        string
@@ -30,14 +33,13 @@ type item struct {
 // Register 拦截器注册器
 type Register struct {
 	interceptors []item
-	excludes     map[string]bool
+	excludes     sync.Map
 }
 
 // NewRegister 新的注册器
 func NewRegister() *Register {
 	return &Register{
 		interceptors: make([]item, 0),
-		excludes:     make(map[string]bool),
 	}
 }
 
@@ -65,15 +67,20 @@ func (ir *Register) AddInterceptors(path string, interceptors ...Interceptor) *R
 //
 // 支持 前缀匹配 & 严格匹配
 func (ir *Register) Exclude(path string) *Register {
-	if !ir.excludes[path] {
-		ir.excludes[path] = true
+	if _, ok := ir.excludes.Load(path); !ok {
+		ir.excludes.Store(path, true)
 	}
 	return ir
 }
 
 // GetExcludes 获取那些被排除的路径
 func (ir *Register) GetExcludes() map[string]bool {
-	return ir.excludes
+	excludes := make(map[string]bool)
+	ir.excludes.Range(func(key, value interface{}) bool {
+		excludes[key.(string)] = value.(bool)
+		return true
+	})
+	return excludes
 }
 
 // Iterate 遍历所有拦截器，并执行相应回到操作

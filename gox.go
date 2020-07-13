@@ -51,9 +51,9 @@ type GoX struct {
 // 做一些初始化配置
 func init() {
 	ctx.C().
-		SetWareOnce(common.FilterChainName, filter.NewChain()).                       // 过滤器链
+		SetWareOnce(common.FilterChainName, filter.NewChain()). // 过滤器链
 		SetWareOnce(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()). // 请求分发器
-		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister())        // 拦截器
+		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister()) // 拦截器
 }
 
 // ServeHTTP 接收处理请求
@@ -187,6 +187,10 @@ func (gx *GoX) Mapping(path string, ctrls ...core.Controller) *GoX {
 func (gx *GoX) Run(server *http.Server) {
 	if server == nil {
 		return
+	}
+
+	if server.Handler == nil {
+		server.Handler = gx
 	}
 
 	// 支持优雅关闭服务

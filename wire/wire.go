@@ -42,8 +42,8 @@ type HandlerWire struct {
 
 // Wires 处理器映射缓存
 type Wires struct {
-	wires  map[string]*HandlerWire // path 处理器映射
-	sorted []*HandlerWire          // 从长到短 排序后的映射
+	wires  sync.Map       // path 处理器映射
+	sorted []*HandlerWire // 从长到短 排序后的映射
 }
 
 var (
@@ -55,7 +55,6 @@ var (
 func init() {
 	once.Do(func() {
 		Instance = &Wires{
-			wires:  make(map[string]*HandlerWire),
 			sorted: make([]*HandlerWire, 0),
 		}
 	})
@@ -71,7 +70,7 @@ func (w *Wires) Mapping(path string, handler common.Handler, methods []common.Me
 	}
 	// Request 节点  或者  路径长度 从长到端排序
 	w.sorted = appendSorted(w.sorted, wire)
-	w.wires[path] = wire
+	w.wires.Store(path, wire)
 
 	pc := reflect.Value(handler).Pointer()
 	name := strings.ReplaceAll(runtime.FuncForPC(pc).Name(), "-fm", util.FormatHandlerArgs(wire.Params))
@@ -80,7 +79,11 @@ func (w *Wires) Mapping(path string, handler common.Handler, methods []common.Me
 
 // Get 获取一条映射关系
 func (w *Wires) Get(path string) *HandlerWire {
-	return w.wires[path]
+	wire, ok := w.wires.Load(path)
+	if !ok {
+		return nil
+	}
+	return wire.(*HandlerWire)
 }
 
 // All 获取所有映射关系

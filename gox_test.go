@@ -23,9 +23,7 @@ package gox
 import (
 	"fmt"
 	"github.com/yhyzgn/gox/core"
-	"github.com/yhyzgn/gox/of"
 	"net/http"
-	"reflect"
 	"testing"
 )
 
@@ -37,28 +35,33 @@ func (a A) Mapping(mapper *core.Mapper) {
 }
 
 func (A) Hello(name string, age int, writer http.ResponseWriter, request *http.Request) string {
-	return "hello"
+	return fmt.Sprintf("hello %s %d", name, age)
 }
 
 func TestRouter_Add(t *testing.T) {
-	router := NewGoX()
-	fmt.Println(router)
+	server := NewGoX()
 
-	wtr := http.ResponseWriter(&of.ResponseWriter{})
-	req := &http.Request{}
+	server.Mapping("/api", new(A))
 
-	tpReq := reflect.ValueOf(req)
-	tpWtr := reflect.ValueOf(wtr)
+	server.Run(&http.Server{
+		Addr: fmt.Sprintf(":%d", 8888),
+	})
 
-	fmt.Println(tpReq.Type().Elem().PkgPath())
-	fmt.Println(tpReq.Type().Kind())
-	fmt.Println(tpReq.Type().Elem().Kind())
-	fmt.Println(tpReq.Type().Elem().Name())
-
-	fmt.Println(tpWtr.Type().Elem().PkgPath())
-	fmt.Println(tpWtr.Type().Kind())
-	fmt.Println(tpWtr.Type().Elem().Kind())
-	fmt.Println(tpWtr.Type().Elem().Name())
+	//wtr := http.ResponseWriter(&of.ResponseWriter{})
+	//req := &http.Request{}
+	//
+	//tpReq := reflect.ValueOf(req)
+	//tpWtr := reflect.ValueOf(wtr)
+	//
+	//fmt.Println(tpReq.Type().Elem().PkgPath())
+	//fmt.Println(tpReq.Type().Kind())
+	//fmt.Println(tpReq.Type().Elem().Kind())
+	//fmt.Println(tpReq.Type().Elem().Name())
+	//
+	//fmt.Println(tpWtr.Type().Elem().PkgPath())
+	//fmt.Println(tpWtr.Type().Kind())
+	//fmt.Println(tpWtr.Type().Elem().Kind())
+	//fmt.Println(tpWtr.Type().Elem().Name())
 
 	//var val []*A
 	//tp := reflect.TypeOf(val)

@@ -33,14 +33,13 @@ import (
 
 // GoXContext GoX 上下文
 type GoXContext struct {
-	contextPath       string                   // 根路径
-	reader            *resource.Reader         // 资源读取器
-	wares             map[string]interface{}   // 一些组件
-	onceMap           map[string]bool          // 一次性组件
-	errorHandlers     map[int]http.HandlerFunc // 错误处理器，每个错误码对应一个处理器
-	staticDir         string                   // 静态资源文件夹路径
-	notFound          http.HandlerFunc         // 404错误处理器
-	unSupportedMethod http.HandlerFunc         // 方法不支持错误处理器
+	contextPath       string           // 根路径
+	reader            *resource.Reader // 资源读取器
+	wares             sync.Map         // 一些组件
+	errorHandlers     sync.Map         // 错误处理器，每个错误码对应一个处理器
+	staticDir         string           // 静态资源文件夹路径
+	notFound          http.HandlerFunc // 404错误处理器
+	unSupportedMethod http.HandlerFunc // 方法不支持错误处理器
 }
 
 var (
@@ -51,11 +50,8 @@ var (
 func init() {
 	once.Do(func() {
 		current = &GoXContext{
-			reader:        resource.NewReader(),
-			wares:         make(map[string]interface{}),
-			onceMap:       make(map[string]bool),
-			errorHandlers: make(map[int]http.HandlerFunc),
-			notFound:      http.NotFound,
+			reader:   resource.NewReader(),
+			notFound: http.NotFound,
 			unSupportedMethod: func(writer http.ResponseWriter, request *http.Request) {
 				http.Error(writer, fmt.Sprintf("Unsupported http method [%v].", request.Method), http.StatusMethodNotAllowed)
 			},
@@ -86,15 +82,15 @@ func (c *GoXContext) SetContextPath(contextPath string) WareContext {
 
 // SetWare 设置组件
 func (c *GoXContext) SetWare(name string, ware interface{}) WareContext {
-	c.wares[name] = ware
+	c.wares.Store(name, ware)
 	return c
 }
 
 // SetWareOnce 设置一次性组件，修改无效
 func (c *GoXContext) SetWareOnce(name string, ware interface{}) WareContext {
-	if c.wares[name] == nil && !c.onceMap[name] {
-		c.wares[name] = ware
-		c.onceMap[name] = true
+	_, ok := c.wares.Load(name)
+	if !ok {
+		c.wares.Store(name, ware)
 	}
 	return c
 }
@@ -106,7 +102,11 @@ func (c *GoXContext) GetContextPath() string {
 
 // GetWare 获取组件
 func (c *GoXContext) GetWare(name string) interface{} {
-	return c.wares[name]
+	ware, ok := c.wares.Load(name)
+	if !ok {
+		return nil
+	}
+	return ware
 }
 
 // SetStaticDir 设置静态资源文件夹
@@ -129,7 +129,7 @@ func (c *GoXContext) SetUnSupportMethodHandler(handler http.HandlerFunc) *GoXCon
 
 // AddErrorHandler 添加错误码处理器
 func (c *GoXContext) AddErrorHandler(statusCode int, handler http.HandlerFunc) *GoXContext {
-	c.errorHandlers[statusCode] = handler
+	c.errorHandlers.Store(statusCode, handler)
 	return c
 }
 
@@ -168,5 +168,9 @@ func (c *GoXContext) GetUnSupportMethodHandler() http.HandlerFunc {
 
 // GetErrorHandler 获取错误码处理器
 func (c *GoXContext) GetErrorHandler(statusCode int) http.HandlerFunc {
-	return c.errorHandlers[statusCode]
+	handler, ok := c.errorHandlers.Load(statusCode)
+	if !ok {
+		return nil
+	}
+	return handler.(http.HandlerFunc)
 }

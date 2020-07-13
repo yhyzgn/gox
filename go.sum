@@ -2,6 +2,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/yhyzgn/gog v1.1.4 h1:9XOWNlVOmWDi31OaIfgMCN0XDUQHFP6eMpuED/qmFA8=
 github.com/yhyzgn/gog v1.1.4/go.mod h1:lpYQ1RZdgLZAboLjtAoJ6FJHufWI6d/W/PWEmkRwGvM=
+github.com/yhyzgn/gog v1.1.6 h1:otgsIWhrL1pb6DmJtLo4OFC1sZ9+tfLpTs/D+gbYIno=
+github.com/yhyzgn/gog v1.1.6/go.mod h1:lpYQ1RZdgLZAboLjtAoJ6FJHufWI6d/W/PWEmkRwGvM=
 github.com/yhyzgn/golus v1.0.3 h1:qI+ZGLcSTMHna4pXDRlUSwA2KEiKFqPxm65VAev6eV0=
 github.com/yhyzgn/golus v1.0.3/go.mod h1:45my4h9DHpjpNCOTtIPFDIxko6VS6YJIayEOIn4V6Rw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=

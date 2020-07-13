@@ -20,30 +20,34 @@
 
 package common
 
+import "sync"
+
 // MethodSet http 请求方法集合，保证唯一性
 type MethodSet struct {
-	flags   map[Method]bool
+	flags   sync.Map
 	methods []Method
 }
 
 // NewMethodSet 一个新的集合对象
 func NewMethodSet() *MethodSet {
 	return &MethodSet{
-		flags:   make(map[Method]bool),
 		methods: make([]Method, 0),
 	}
 }
 
 // Has 是否已经存在 方法 method
 func (ms *MethodSet) Has(method Method) bool {
-	return ms.flags[method]
+	if _, ok := ms.flags.Load(method); !ok {
+		return false
+	}
+	return true
 }
 
 // Add 向集合中添加方法
 func (ms *MethodSet) Add(method Method) *MethodSet {
 	if !ms.Has(method) {
 		ms.methods = append(ms.methods, method)
-		ms.flags[method] = true
+		ms.flags.Store(method, true)
 	}
 	return ms
 }

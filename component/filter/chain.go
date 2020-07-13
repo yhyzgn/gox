@@ -23,6 +23,7 @@ package filter
 import (
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/yhyzgn/gox/ctx"
 
@@ -40,15 +41,14 @@ type item struct {
 // Chain 过滤器链
 type Chain struct {
 	filters    []item
-	excludes   map[string]bool
+	excludes   sync.Map
 	dispatcher dispatcher.Dispatcher
 }
 
 // NewChain 一个新链
 func NewChain() *Chain {
 	return &Chain{
-		filters:  make([]item, 0),
-		excludes: make(map[string]bool),
+		filters: make([]item, 0),
 	}
 }
 
@@ -82,10 +82,20 @@ func (fc *Chain) AddFilters(path string, filters ...Filter) *Chain {
 //
 // 支持 前缀匹配 & 严格匹配
 func (fc *Chain) Exclude(path string) *Chain {
-	if !fc.excludes[path] {
-		fc.excludes[path] = true
+	if _, ok := fc.excludes.Load(path); !ok {
+		fc.excludes.Store(path, true)
 	}
 	return fc
+}
+
+// GetExcludes 获取那些被排除的路径
+func (fc *Chain) GetExcludes() map[string]bool {
+	excludes := make(map[string]bool)
+	fc.excludes.Range(func(key, value interface{}) bool {
+		excludes[key.(string)] = value.(bool)
+		return true
+	})
+	return excludes
 }
 
 // DoFilter 逐个执行过滤器
@@ -94,7 +104,7 @@ func (fc *Chain) DoFilter(writer http.ResponseWriter, request *http.Request) {
 	// 匹配时忽略ContextPath
 	reqPath := strings.ReplaceAll(request.URL.Path, ctx.C().GetContextPath(), "")
 	// 先判断这些请求是否已经被排除在 过滤器 外
-	if util.IsExcludedRequest(reqPath, fc.excludes) {
+	if util.IsExcludedRequest(reqPath, fc.GetExcludes()) {
 		gog.DebugF("The request [%v] has been excluded", request.URL.Path)
 		fc.dispatcher.Dispatch(writer, request)
 		return
