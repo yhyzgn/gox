@@ -278,7 +278,7 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 		if param.InHeader {
 			temp := getHeaderParam(request, param.Name)
 			if temp == "" && param.Required {
-				return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is nested, but received value is empty.", param.Name))
+				return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is required, but received value is empty.", param.Name))
 			}
 			// 添加到参数列表
 			args = append(args, util.StringToValue(param.RealType.Kind(), temp))
@@ -336,7 +336,7 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 				args = append(args, val)
 				continue
 			}
-			return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("There is no request body of request [%v], but it's nested.", hw.Path))
+			return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("There is no request body of request [%v], but it's required.", hw.Path))
 		}
 
 		// ----------------------------------------------------------------------------------------------  MultipartFile ----------------------------------------------------------------------------------------------
@@ -416,7 +416,7 @@ func (rd *RequestDispatcher) resolve(hw *wire.HandlerWire, writer http.ResponseW
 		temp := getNormalParam(request, param.Name)
 		// 如果没获取到参数但又必须，则直接报错
 		if temp == "" && param.Required {
-			return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is nested, but no value received.", param.Name))
+			return nil, common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is required, but no value received.", param.Name))
 		}
 		// 添加到参数列表
 		args = append(args, util.StringToValue(param.RealType.Kind(), temp))
@@ -508,7 +508,7 @@ func getVOParamValueByField(request *http.Request, field reflect.StructField) (r
 		}
 	}
 	if temp == "" && required {
-		return reflect.ValueOf(nil), common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is nested, but no value received.", name))
+		return reflect.ValueOf(nil), common.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("The param [%v] is required, but no value received.", name))
 	}
 	return util.StringToValue(field.Type.Kind(), temp), nil
 }

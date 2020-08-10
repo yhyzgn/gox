@@ -22,6 +22,7 @@ package gox
 
 import (
 	"fmt"
+	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/core"
 	"net/http"
 	"testing"
@@ -34,7 +35,7 @@ func (a A) Mapping(mapper *core.Mapper) {
 	mapper.Request("/hello").HandlerFunc(a.Hello).Method(http.MethodGet, http.MethodPost).Required("name").Required("age").Mapping()
 }
 
-func (A) Hello(name string, age int, writer http.ResponseWriter, request *http.Request) string {
+func (A) Hello(name string, age int) string {
 	return fmt.Sprintf("hello %s %d", name, age)
 }
 
@@ -42,6 +43,10 @@ func TestRouter_Add(t *testing.T) {
 	server := NewGoX()
 
 	server.Mapping("/api", new(A))
+
+	server.NotFoundHandler(func(writer http.ResponseWriter, request *http.Request) {
+		common.NewHTTPError(http.StatusNotFound, "你的请求被绑架了！").Response(writer)
+	})
 
 	server.Run(&http.Server{
 		Addr: fmt.Sprintf(":%d", 8888),
