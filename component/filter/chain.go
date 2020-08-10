@@ -110,10 +110,8 @@ func (fc *Chain) DoFilter(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	// 获取到当前请求中的过滤器 索引
-	index := util.GetRequestAttribute(request, common.RequestFilterIndexName).(int)
-	// 实时更新 索引
-	request = util.SetRequestAttribute(request, common.RequestFilterIndexName, index+1)
+	// 计算索引
+	request, index := fc.getIndexAndIncrement(request)
 
 	// 走完所有过滤器，需要将请求交给 dispatcher
 	if index == len(fc.filters) {
@@ -141,4 +139,12 @@ func (fc *Chain) DoFilter(writer http.ResponseWriter, request *http.Request) {
 		// 匹配不到过滤器，则递归回当前链，继续下一次匹配
 		fc.DoFilter(writer, request)
 	}
+}
+
+// getIndexAndIncrement 获取当前索引，并递增
+func (fc *Chain) getIndexAndIncrement(req *http.Request) (*http.Request, int) {
+	// 获取到当前请求中的过滤器 索引
+	index := util.GetRequestAttribute(req, common.RequestFilterIndexName).(int)
+	// 实时更新 索引
+	return util.SetRequestAttribute(req, common.RequestFilterIndexName, index+1), index
 }
