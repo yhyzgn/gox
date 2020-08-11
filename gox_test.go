@@ -32,7 +32,12 @@ type A struct {
 }
 
 func (a A) Mapping(mapper *core.Mapper) {
+	mapper.Request("/normal").HandlerFunc(a.Normal).Method(http.MethodGet, http.MethodPost).Mapping()
 	mapper.Request("/hello").HandlerFunc(a.Hello).Method(http.MethodGet, http.MethodPost).Required("name").Required("age").Mapping()
+}
+
+func (A) Normal() string {
+	return "Normal"
 }
 
 func (A) Hello(name string, age int) string {

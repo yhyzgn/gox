@@ -20,11 +20,7 @@
 
 package ctx
 
-// AppVersion 信息
-type AppVersion struct {
-	Name    string
-	Version string
-}
+import "net/http"
 
 // ResourceContext 静态资源上下文
 type ResourceContext interface {
@@ -34,26 +30,9 @@ type ResourceContext interface {
 	Load(filename string, bean interface{}) (err error)
 }
 
-// WebContext mvc 上下文
-type WebContext interface {
+// ServerContext GoX 上下文
+type ServerContext interface {
 	ResourceContext
-}
 
-// WareContext 组件管理功能的上下文
-type WareContext interface {
-	WebContext
-
-	// SetWare 添加组件
-	SetWare(name string, component interface{}) WareContext
-
-	// SetWareOnce 添加一次性组件，修改无效
-	SetWareOnce(name string, component interface{}) WareContext
-
-	// GetWare 获取组件
-	GetWare(name string) interface{}
-}
-
-// XContext GoX 上下文
-type XContext interface {
-	WareContext
+	Run(server *http.Server)
 }

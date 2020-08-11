@@ -27,13 +27,7 @@ import (
 
 // 定义一些常量
 const (
-	FilterChainName         = "gox-filter-chain"         // 过滤器注册链名字
-	InterceptorRegisterName = "gox-interceptor-register" // 拦截器注册器名字
-	RequestDispatcherName   = "gox-request-dispatcher"   // 请求分发器名字
-	ArgumentResolverName    = "gox-argument-resolver"    // 参数处理器名字
-	ResultResolverName      = "gox-result-resolver"      // 结果处理器名字
-	ErrorResolverName       = "gox-error-resolver"       // 全局异常处理器名字
-	RequestFilterIndexName  = "gox-filter-index"         // 每个请求过滤器索引名字
+	RequestFilterIndexName = "gox-filter-index" // 每个请求过滤器索引名字
 )
 
 // AttributeKey request 属性的键类型

@@ -25,7 +25,6 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/resolver"
 
 	"github.com/yhyzgn/gox/resource"
@@ -33,13 +32,15 @@ import (
 
 // GoXContext GoX 上下文
 type GoXContext struct {
-	contextPath       string           // 根路径
-	reader            *resource.Reader // 资源读取器
-	wares             sync.Map         // 一些组件
-	errorHandlers     sync.Map         // 错误处理器，每个错误码对应一个处理器
-	staticDir         string           // 静态资源文件夹路径
-	notFound          http.HandlerFunc // 404错误处理器
-	unSupportedMethod http.HandlerFunc // 方法不支持错误处理器
+	contextPath       string                    // 根路径
+	reader            *resource.Reader          // 资源读取器
+	errorHandlers     sync.Map                  // 错误处理器，每个错误码对应一个处理器
+	staticDir         string                    // 静态资源文件夹路径
+	notFound          http.HandlerFunc          // 404错误处理器
+	unSupportedMethod http.HandlerFunc          // 方法不支持错误处理器
+	argumentResolver  resolver.ArgumentResolver // 参数处理器
+	resultResolver    resolver.ResultResolver   // 结果处理器
+	errorResolver     resolver.ErrorResolver    // 全局异常处理器
 }
 
 var (
@@ -55,6 +56,9 @@ func init() {
 			unSupportedMethod: func(writer http.ResponseWriter, request *http.Request) {
 				http.Error(writer, fmt.Sprintf("Unsupported http method [%v].", request.Method), http.StatusMethodNotAllowed)
 			},
+			argumentResolver: resolver.NewSimpleArgumentResolver(),
+			resultResolver:   resolver.NewSimpleResultResolver(),
+			errorResolver:    resolver.NewSimpleErrorResolver(),
 		}
 	})
 }
@@ -75,38 +79,14 @@ func (c *GoXContext) Load(filename string, bean interface{}) (err error) {
 }
 
 // SetContextPath 设置根路径
-func (c *GoXContext) SetContextPath(contextPath string) WareContext {
+func (c *GoXContext) SetContextPath(contextPath string) *GoXContext {
 	c.contextPath = contextPath
-	return c
-}
-
-// SetWare 设置组件
-func (c *GoXContext) SetWare(name string, ware interface{}) WareContext {
-	c.wares.Store(name, ware)
-	return c
-}
-
-// SetWareOnce 设置一次性组件，修改无效
-func (c *GoXContext) SetWareOnce(name string, ware interface{}) WareContext {
-	_, ok := c.wares.Load(name)
-	if !ok {
-		c.wares.Store(name, ware)
-	}
 	return c
 }
 
 // GetContextPath 获取根路径
 func (c *GoXContext) GetContextPath() string {
 	return c.contextPath
-}
-
-// GetWare 获取组件
-func (c *GoXContext) GetWare(name string) interface{} {
-	ware, ok := c.wares.Load(name)
-	if !ok {
-		return nil
-	}
-	return ware
 }
 
 // SetStaticDir 设置静态资源文件夹
@@ -135,20 +115,35 @@ func (c *GoXContext) AddErrorHandler(statusCode int, handler http.HandlerFunc) *
 
 // SetArgumentResolver 设置参数处理器
 func (c *GoXContext) SetArgumentResolver(resolver resolver.ArgumentResolver) *GoXContext {
-	c.SetWare(common.ArgumentResolverName, resolver)
+	c.argumentResolver = resolver
 	return c
 }
 
 // SetResultResolver 设置结果处理器
 func (c *GoXContext) SetResultResolver(resolver resolver.ResultResolver) *GoXContext {
-	c.SetWare(common.ResultResolverName, resolver)
+	c.resultResolver = resolver
 	return c
 }
 
 // SetErrorResolver 设置全局异常处理器
 func (c *GoXContext) SetErrorResolver(resolver resolver.ErrorResolver) *GoXContext {
-	c.SetWare(common.ErrorResolverName, resolver)
+	c.errorResolver = resolver
 	return c
+}
+
+// GetArgumentResolver 获取参数处理器
+func (c *GoXContext) GetArgumentResolver() resolver.ArgumentResolver {
+	return c.argumentResolver
+}
+
+// GetResultResolver 获取结果处理器
+func (c *GoXContext) GetResultResolver() resolver.ResultResolver {
+	return c.resultResolver
+}
+
+// GetErrorResolver 获取全局异常处理器
+func (c *GoXContext) GetErrorResolver() resolver.ErrorResolver {
+	return c.errorResolver
 }
 
 // GetStaticDir 获取静态资源文件夹

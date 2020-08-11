@@ -48,12 +48,18 @@ type GoX struct {
 	ctx.GoXContext
 }
 
+var (
+	filterChain         = filter.NewChain()                 // 过滤器链
+	requestDispatcher   = dispatcher.NewRequestDispatcher() // 请求分发器
+	interceptorRegister = interceptor.NewRegister()         // 拦截器注册器
+)
+
 // 做一些初始化配置
 func init() {
-	ctx.C().
-		SetWareOnce(common.FilterChainName, filter.NewChain()). // 过滤器链
-		SetWareOnce(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()). // 请求分发器
-		SetWareOnce(common.InterceptorRegisterName, interceptor.NewRegister()) // 拦截器
+	// 将拦截器设置到分发器
+	requestDispatcher.SetInterceptorRegister(interceptorRegister)
+	// 将分发器设置到过滤器链
+	filterChain.SetDispatcher(requestDispatcher)
 }
 
 // ServeHTTP 接收处理请求
@@ -78,18 +84,6 @@ func (gx *GoX) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	//   ↓
 	// 处理器
 	// -----------------------------------------------------------------------
-
-	// 过滤器链
-	filterChain := ctx.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain)
-	// 分发器
-	dispatch := ctx.GetWare(common.RequestDispatcherName, dispatcher.NewRequestDispatcher()).(*dispatcher.RequestDispatcher)
-	// 拦截器
-	interceptorRegister := ctx.GetWare(common.InterceptorRegisterName, interceptor.NewRegister()).(*interceptor.Register)
-
-	// 将拦截器设置到分发器
-	dispatch.SetInterceptorRegister(interceptorRegister)
-	// 将分发器设置到过滤器链
-	filterChain.SetDispatcher(dispatch)
 
 	// 开始啦~
 	filterChain.DoFilter(writer, request)
@@ -230,9 +224,9 @@ func (gx *GoX) config(configure configure.WebConfigure) {
 		configure.Context(ctx.C())
 
 		// 注册过滤器
-		configure.ConfigFilter(ctx.GetWare(common.FilterChainName, filter.NewChain()).(*filter.Chain))
+		configure.ConfigFilter(filterChain)
 
 		// 注册拦截器
-		configure.ConfigInterceptor(ctx.GetWare(common.InterceptorRegisterName, interceptor.NewRegister()).(*interceptor.Register))
+		configure.ConfigInterceptor(interceptorRegister)
 	}
 }

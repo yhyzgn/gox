@@ -33,7 +33,6 @@ import (
 	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/component/interceptor"
 	"github.com/yhyzgn/gox/ctx"
-	"github.com/yhyzgn/gox/resolver"
 	"github.com/yhyzgn/gox/util"
 	"github.com/yhyzgn/gox/wire"
 )
@@ -110,11 +109,11 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	handler := hw.Handler
 
 	// 参数处理器
-	argumentResolver := ctx.GetWare(common.ArgumentResolverName, resolver.NewSimpleArgumentResolver()).(resolver.ArgumentResolver)
+	argumentResolver := ctx.C().GetArgumentResolver()
 	// 结果处理器
-	resultResolver := ctx.GetWare(common.ResultResolverName, resolver.NewSimpleResultResolver()).(resolver.ResultResolver)
+	resultResolver := ctx.C().GetResultResolver()
 	// 异常处理器
-	errorResolver := ctx.GetWare(common.ErrorResolverName, resolver.NewSimpleErrorResolver()).(resolver.ErrorResolver)
+	errorResolver := ctx.C().GetErrorResolver()
 
 	// 先处理一遍参数
 	args, ex := rd.resolve(hw, writer, request, isRESTful)
