@@ -158,7 +158,7 @@ func (c *GoXContext) GetNotFoundHandler() http.HandlerFunc {
 
 // GetUnSupportMethodHandler 获取 请求方法 错误处理器
 func (c *GoXContext) GetUnSupportMethodHandler() http.HandlerFunc {
-	return c.notFound
+	return c.unSupportedMethod
 }
 
 // GetErrorHandler 获取错误码处理器
