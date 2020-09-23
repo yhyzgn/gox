@@ -101,24 +101,29 @@ func AddURLQuery(url, key, value string) string {
 
 // ResponseJSON 响应 json 数据
 func ResponseJSON(writer http.ResponseWriter, value interface{}) {
+	ResponseJSONStatus(http.StatusOK, writer, value)
+}
+
+// ResponseJSONStatus 响应 json 数据
+func ResponseJSONStatus(status int, writer http.ResponseWriter, value interface{}) {
 	SetResponseWriterHeader(writer, "Content-Type", "application/json;charset=utf-8")
 	if value != nil {
 		bs, err := json.Marshal(value)
 		if err == nil {
-			err = ResponseBytes(writer, bs)
+			err = ResponseBytes(status, writer, bs)
 			if err == nil {
 				return
 			}
 		}
-		_ = ResponseBytes(writer, []byte(err.Error()))
+		_ = ResponseBytes(status, writer, []byte(err.Error()))
 		return
 	}
-	_ = ResponseBytes(writer, []byte("nil response"))
+	_ = ResponseBytes(status, writer, nil)
 }
 
 // ResponseBytes http 响应
-func ResponseBytes(writer http.ResponseWriter, bytes []byte) (err error) {
-	writer.WriteHeader(http.StatusOK)
+func ResponseBytes(status int, writer http.ResponseWriter, bytes []byte) (err error) {
+	writer.WriteHeader(status)
 	_, err = writer.Write(bytes)
 	return
 }

@@ -20,23 +20,20 @@
 
 package common
 
-import "net/http"
+import (
+	"errors"
+)
 
 // HTTPError HTTP 异常定义
 type HTTPError struct {
-	Code  int    // 状态码
-	Error string // 错误信息
+	Code  int   // 状态码
+	Error error // 错误信息
 }
 
 // NewHTTPError 一个新的异常
 func NewHTTPError(statusCode int, error string) *HTTPError {
 	return &HTTPError{
 		Code:  statusCode,
-		Error: error,
+		Error: errors.New(error),
 	}
-}
-
-// Response 响应异常
-func (err *HTTPError) Response(writer http.ResponseWriter) {
-	http.Error(writer, err.Error, err.Code)
 }

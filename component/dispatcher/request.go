@@ -108,6 +108,9 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	// 处理器
 	handler := hw.Handler
 
+	// 匹配时忽略ContextPath
+	reqPath := strings.ReplaceAll(request.URL.Path, ctx.C().GetContextPath(), "")
+
 	// 参数处理器
 	argumentResolver := ctx.C().GetArgumentResolver()
 	// 结果处理器
@@ -115,11 +118,17 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	// 异常处理器
 	errorResolver := ctx.C().GetErrorResolver()
 
+	var (
+		res      reflect.Value
+		err      error
+		noResult bool
+	)
+
 	// 先处理一遍参数
 	args, ex := rd.resolve(hw, writer, request, isRESTful)
 	if ex != nil {
 		gog.Error(ex.Error)
-		ex.Response(writer)
+		errorResolver.Resolve(ex.Code, ex.Error, writer)
 		return
 	}
 
@@ -127,9 +136,6 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	argumentResolver.Resolve(args, writer, request, handler)
 
 	gog.DebugF("Params of request path [{}] are [{}], matched router [{}] of params [{}]", request.URL.Path, util.FormatRealArgsValue(args), hw.Path, util.FormatHandlerArgs(hw.Params))
-
-	// 匹配时忽略ContextPath
-	reqPath := strings.ReplaceAll(request.URL.Path, ctx.C().GetContextPath(), "")
 
 	// 处理前，执行拦截器 PreHandle() 方法
 	if rd.register != nil && !util.IsExcludedRequest(reqPath, rd.register.GetExcludes()) {
@@ -189,11 +195,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	// 拦截器通过后，将请求交由 处理器 处理
 	// 已经获取到参数列表，执行方法即可
 	results := handler.Call(args)
-	noResult := results == nil || len(results) == 0
-	var (
-		res reflect.Value
-		err error
-	)
+	noResult = results == nil || len(results) == 0
 	if noResult {
 		// 无返回值
 		gog.InfoF("The request [{}] responded, and the handler needn't return any value.", request.URL.Path)
@@ -202,7 +204,8 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 		res, err = resultResolver.Resolve(hw, results, writer, request)
 		// 如果有错误，就交给异常处理器处理
 		if err != nil {
-			res = reflect.ValueOf(errorResolver.Resolve(err, writer))
+			errorResolver.Resolve(http.StatusOK, err, writer)
+			return
 		}
 	}
 

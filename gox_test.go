@@ -21,9 +21,10 @@
 package gox
 
 import (
+	"errors"
 	"fmt"
-	"github.com/yhyzgn/gox/common"
 	"github.com/yhyzgn/gox/core"
+	"github.com/yhyzgn/gox/util"
 	"net/http"
 	"testing"
 )
@@ -32,12 +33,12 @@ type A struct {
 }
 
 func (a A) Mapping(mapper *core.Mapper) {
-	mapper.Request("/normal").HandlerFunc(a.Normal).Method(http.MethodGet, http.MethodPost).Mapping()
+	mapper.Request("/normal").HandlerFunc(a.Normal).Required("id").Method(http.MethodGet, http.MethodPost).Mapping()
 	mapper.Request("/hello").HandlerFunc(a.Hello).Method(http.MethodGet, http.MethodPost).Required("name").Required("age").Mapping()
 }
 
-func (A) Normal() string {
-	return "Normal"
+func (A) Normal(id int) error {
+	return errors.New("Normal")
 }
 
 func (A) Hello(name string, age int) string {
@@ -50,7 +51,7 @@ func TestRouter_Add(t *testing.T) {
 	server.Mapping("/api", new(A))
 
 	server.NotFoundHandler(func(writer http.ResponseWriter, request *http.Request) {
-		common.NewHTTPError(http.StatusNotFound, "你的请求被绑架了！").Response(writer)
+		util.ResponseJSONStatus(http.StatusNotFound, writer, "你的请求被绑架了")
 	})
 
 	server.Run(&http.Server{

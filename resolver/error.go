@@ -21,6 +21,7 @@
 package resolver
 
 import (
+	"github.com/yhyzgn/gox/util"
 	"net/http"
 )
 
@@ -28,7 +29,7 @@ import (
 type ErrorResolver interface {
 
 	// Resolve 处理异常
-	Resolve(err error, writer http.ResponseWriter) interface{}
+	Resolve(status int, err error, writer http.ResponseWriter) interface{}
 }
 
 // SimpleErrorResolver 默认的异常处理器
@@ -38,6 +39,7 @@ func NewSimpleErrorResolver() *SimpleErrorResolver {
 	return new(SimpleErrorResolver)
 }
 
-func (ser *SimpleErrorResolver) Resolve(err error, writer http.ResponseWriter) interface{} {
-	return err
+func (ser *SimpleErrorResolver) Resolve(status int, err error, writer http.ResponseWriter) interface{} {
+	util.ResponseJSONStatus(status, writer, err.Error())
+	return nil
 }

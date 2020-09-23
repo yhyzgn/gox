@@ -64,10 +64,14 @@ func (srr *SimpleResultResolver) Resolve(hw *wire.HandlerWire, values []reflect.
 	}
 
 	ln := len(values)
-	// 只有1个返回值，必定是 请求响应结果
+	// 只有1个返回值，必定是 请求响应结果 或者 错误信息
 	if ln == 1 {
-		//srr.Response(values[0], writer)
-		value = values[0]
+		temp := values[0]
+		if temp.Type().Name() == "error" {
+			err = temp.Interface().(error)
+		} else {
+			value = temp
+		}
 		return
 	}
 
