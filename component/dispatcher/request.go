@@ -160,11 +160,11 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 			}
 
 			if skipped {
-				gog.DebugF("The request [%v] has skipped by interceptor [%v].", request.URL.Path, path)
+				gog.TraceF("The request [%v] has skipped by interceptor [%v].", request.URL.Path, path)
 			} else if passed {
-				gog.DebugF("The request [%v] has passed by interceptor [%v].", request.URL.Path, path)
+				gog.TraceF("The request [%v] has passed by interceptor [%v].", request.URL.Path, path)
 			} else {
-				gog.DebugF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
+				gog.TraceF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
 			}
 
 			return
@@ -172,7 +172,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 
 		// 拦截器不通过
 		if !passed {
-			gog.InfoF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
+			gog.TraceF("The request [%v] has been intercepted by interceptor [%v].", request.URL.Path, path)
 			return
 		}
 	}
@@ -198,7 +198,7 @@ func (rd *RequestDispatcher) doDispatch(hw *wire.HandlerWire, writer http.Respon
 	noResult = results == nil || len(results) == 0
 	if noResult {
 		// 无返回值
-		gog.InfoF("The request [{}] responded, and the handler needn't return any value.", request.URL.Path)
+		gog.DebugF("The request [{}] responded, and the handler needn't return any value.", request.URL.Path)
 	} else {
 		// 响应结果交由 结果处理器 处理
 		res, err = resultResolver.Resolve(hw, results, writer, request)

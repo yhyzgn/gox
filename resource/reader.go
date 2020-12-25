@@ -27,7 +27,7 @@ import (
 	"io/ioutil"
 
 	"github.com/BurntSushi/toml"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // Reader 配置文件读取器

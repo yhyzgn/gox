@@ -74,7 +74,7 @@ func (fc *Chain) AddFilters(path string, filters ...Filter) *Chain {
 			filter: flt,
 		})
 	}
-	gog.InfoF("The Filters [%v] registered.", path)
+	gog.DebugF("The Filters [%v] registered.", path)
 	return fc
 }
 
@@ -105,7 +105,7 @@ func (fc *Chain) DoFilter(writer http.ResponseWriter, request *http.Request) {
 	reqPath := strings.ReplaceAll(request.URL.Path, ctx.C().GetContextPath(), "")
 	// 先判断这些请求是否已经被排除在 过滤器 外
 	if util.IsExcludedRequest(reqPath, fc.GetExcludes()) {
-		gog.DebugF("The request [%v] has been excluded", request.URL.Path)
+		gog.TraceF("The request [%v] has been excluded", request.URL.Path)
 		fc.dispatcher.Dispatch(writer, request)
 		return
 	}
@@ -124,18 +124,18 @@ func (fc *Chain) DoFilter(writer http.ResponseWriter, request *http.Request) {
 	// 匹配 path，未匹配到的 filter 直接跳过
 	if item.path == "/" {
 		// 所有请求
-		gog.DebugF("The request [%v] has passed by filter [/]", request.URL.Path)
+		gog.TraceF("The request [%v] has passed by filter [/]", request.URL.Path)
 		item.filter.DoFilter(writer, request, fc)
 	} else if item.path == reqPath {
 		// 严格匹配，只有路径完全相同才走过滤器
-		gog.DebugF("The request [%v] has passed by filter [%v]", request.URL.Path, item.path)
+		gog.TraceF("The request [%v] has passed by filter [%v]", request.URL.Path, item.path)
 		item.filter.DoFilter(writer, request, fc)
 	} else if util.MatchedRequestByPathPattern(reqPath, item.path) {
 		// 前缀|后缀匹配成功，走过滤器
-		gog.DebugF("The request [%v] has passed by filter [%v]", request.URL.Path, item.path)
+		gog.TraceF("The request [%v] has passed by filter [%v]", request.URL.Path, item.path)
 		item.filter.DoFilter(writer, request, fc)
 	} else {
-		gog.DebugF("The request [%v] has skipped by filter [%v]", request.URL.Path, item.path)
+		gog.TraceF("The request [%v] has skipped by filter [%v]", request.URL.Path, item.path)
 		// 匹配不到过滤器，则递归回当前链，继续下一次匹配
 		fc.DoFilter(writer, request)
 	}
