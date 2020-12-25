@@ -1,7 +1,14 @@
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+<<<<<<< HEAD
 github.com/yhyzgn/gog v1.1.9 h1:Mg/zkFMTG/8PJp/L7k7louQx97XNJ2FTJb1QnW9VchY=
 github.com/yhyzgn/gog v1.1.9/go.mod h1:lpYQ1RZdgLZAboLjtAoJ6FJHufWI6d/W/PWEmkRwGvM=
+=======
+github.com/yhyzgn/gog v1.1.7 h1:2+5ZtzMpNCXihApI9xd1Xg1BvC9G3UbWGV/3Ys1x9tE=
+github.com/yhyzgn/gog v1.1.7/go.mod h1:lpYQ1RZdgLZAboLjtAoJ6FJHufWI6d/W/PWEmkRwGvM=
+github.com/yhyzgn/gog v1.1.8 h1:vzmNgowpetYancE2x7RLNiSOazmMkrwGaNFpwd6dhiA=
+github.com/yhyzgn/gog v1.1.8/go.mod h1:lpYQ1RZdgLZAboLjtAoJ6FJHufWI6d/W/PWEmkRwGvM=
+>>>>>>> 1a7d8a8010ee2c2bf3def4de742355726d63fc11
 github.com/yhyzgn/golus v1.0.3 h1:qI+ZGLcSTMHna4pXDRlUSwA2KEiKFqPxm65VAev6eV0=
 github.com/yhyzgn/golus v1.0.3/go.mod h1:45my4h9DHpjpNCOTtIPFDIxko6VS6YJIayEOIn4V6Rw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
