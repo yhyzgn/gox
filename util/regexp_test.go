@@ -21,23 +21,13 @@
 package util
 
 import (
-	"net/http"
-	"net/url"
 	"testing"
 
 	"github.com/yhyzgn/gog"
 )
 
 func TestMatchedRequestByPathPattern(t *testing.T) {
-	gog.Info(MatchedRequestByPathPattern(&http.Request{
-		URL: &url.URL{
-			Path: "/api/user/login.do",
-		},
-	}, "/api/*.do"))
+	gog.Info(MatchedRequestByPathPattern("/api/user/login.do", "/api/*.do"))
 
-	gog.Info(MatchedRequestByPathPattern(&http.Request{
-		URL: &url.URL{
-			Path: "/api/user/login.do",
-		},
-	}, "/api/sys/*"))
+	gog.Info(MatchedRequestByPathPattern("/api/user/login.do", "/api/sys/*"))
 }
